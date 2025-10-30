@@ -1,14 +1,30 @@
+import tkinter as tk
+from tkinter import messagebox
+
+# --- Clock display ---
 from src.displays.clockDisplay import Clock
 
-# Create an instance of the Clock class
-# clock = Clock()
-# clock.run()
-
-# main.py
+# --- Acceleration display ---
 from src.sensors.MPU6050 import MPU6050
 from src.displays.accelerationDisplay import CarDisplay
 
-def main():
+# --- GPS map viewer ---
+from src.displays.GPSDisplay import OfflineMap
+import itertools
+
+
+# ===============================================================
+# Display Launchers
+# ===============================================================
+
+def run_clock():
+    """Launch the Clock display."""
+    clock = Clock()
+    clock.run()
+
+
+def run_acceleration_display():
+    """Launch the 3D car acceleration visualization."""
     sensor = MPU6050()
     sensor.init_sensor()
 
@@ -16,7 +32,7 @@ def main():
     sensor.calibrate_accelerometer()
 
     display = CarDisplay(
-        obj_file = r"lib/3dModel/Peugeot106Final.obj",
+        obj_file=r"lib/3dModel/Peugeot106Final.obj",
         ax_offset=sensor.ax_offset,
         ay_offset=sensor.ay_offset,
         update_rate=5,
@@ -26,5 +42,74 @@ def main():
 
     display.run(sensor.get_calibrated_acceleration)
 
+
+def run_gps_map():
+    """Launch the offline map with a moving car."""
+    MAP_FOLDER = r"lib/mapNL"
+    ZOOM = 14
+    TILE_SIZE = 500
+    VIEW_SIZE = 800
+    UPDATE_INTERVAL = 1000    # milliseconds between updates
+
+    gps_points = [
+        (52.0907, 5.1214),
+        (52.0910, 5.1225),
+        (52.0915, 5.1238),
+        (52.0920, 5.1250),
+        (52.0923, 5.1262),
+        (52.0927, 5.1275),
+        (52.0931, 5.1288),
+    ]
+
+    gps_cycle = itertools.cycle(gps_points)
+    map_viewer = OfflineMap(MAP_FOLDER, zoom=ZOOM, tile_size=TILE_SIZE, view_size=VIEW_SIZE)
+
+    root = tk.Tk()
+    root.title("Offline Map Viewer - Moving Car")
+
+    lat, lon = next(gps_cycle)
+    img = map_viewer.render_map(lat, lon)
+    label = tk.Label(root, image=img)
+    label.pack()
+
+    def update_position():
+        nonlocal img
+        lat, lon = next(gps_cycle)
+        img = map_viewer.render_map(lat, lon)
+        label.configure(image=img)
+        label.image = img
+        root.after(UPDATE_INTERVAL, update_position)
+
+    root.after(UPDATE_INTERVAL, update_position)
+    root.mainloop()
+
+
+# ===============================================================
+# Main menu (selection window)
+# ===============================================================
+
+def main_menu():
+    """Simple Tkinter menu to select display mode."""
+    root = tk.Tk()
+    root.title("Main Display Selector")
+
+    tk.Label(root, text="Select a display mode:", font=("Arial", 14, "bold")).pack(pady=10)
+
+    tk.Button(root, text="🕒 Clock Display", font=("Arial", 12), width=25, command=lambda: [root.destroy(), run_clock()]).pack(pady=5)
+    tk.Button(root, text="📈 Acceleration Display", font=("Arial", 12), width=25, command=lambda: [root.destroy(), run_acceleration_display()]).pack(pady=5)
+    tk.Button(root, text="🗺️ GPS Map Viewer", font=("Arial", 12), width=25, command=lambda: [root.destroy(), run_gps_map()]).pack(pady=5)
+
+    tk.Button(root, text="Exit", font=("Arial", 12), width=25, command=root.destroy).pack(pady=10)
+
+    root.mainloop()
+
+
+# ===============================================================
+# Entry point
+# ===============================================================
+
 if __name__ == "__main__":
-    main()
+    try:
+        main_menu()
+    except KeyboardInterrupt:
+        print("Exiting...")
