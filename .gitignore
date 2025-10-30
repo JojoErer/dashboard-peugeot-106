@@ -1,2 +1,5 @@
-lib\mapNL\*
-lib\3dModel\*
+*.pyc
+*.png
+*.blend
+*.obj
+*.mtl
