@@ -6,7 +6,7 @@ except ImportError:
 import time
 
 class LightSensor:
-    def __init__(self, pin1=22, pin2=27):
+    def __init__(self, pin1=22, pin2=10):
         """
         Initializes the two light sensors.
         :param pin1: The GPIO pin where the first light sensor is connected (default is GPIO17).

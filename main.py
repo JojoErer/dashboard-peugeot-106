@@ -89,8 +89,8 @@ def run_gps_map():
     
 def run_clock_with_sensors(test_mode=False):
     """Launch the clock display with DHT11 temperature & humidity overlay."""
-    CAR_PIN = 4
-    VENT_PIN = 17
+    CAR_PIN = 17
+    VENT_PIN = 27
 
     clock = Clock()
     overlay = SensorOverlay(car_pin=CAR_PIN, vent_pin=VENT_PIN, clock=clock, test_mode=test_mode)
@@ -102,7 +102,7 @@ def run_light_display(test_mode=False):
     if test_mode:
         sensor = None
     else:
-        sensor = LightSensor(pin1=17, pin2=27)
+        sensor = LightSensor(pin1=22, pin2=10)
 
     display = LightDisplay(light_sensor=sensor, test_mode=test_mode)
     display.run()
