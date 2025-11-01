@@ -10,14 +10,12 @@ class Clock:
 
         # === Cross-platform fullscreen setup ===
         if sys.platform.startswith("linux"):
-            # Works on Raspberry Pi and Linux (X11)
             try:
                 self.root.attributes("-zoomed", True)
             except tk.TclError:
-                pass  # some Pi builds don’t support -zoomed
+                pass
             self.root.attributes("-fullscreen", True)
         else:
-            # Windows / macOS fallback
             self.root.attributes("-fullscreen", True)
 
         # Remove window borders (kiosk mode)
@@ -45,7 +43,9 @@ class Clock:
 
     def draw_clock(self):
         """Draws the analog clock centered and scaled to the current screen."""
-        self.canvas.delete("all")
+        # --- CHANGED: only delete clock graphics, not overlays ---
+        self.canvas.delete("clock_elements")
+
         light = self.get_light_color()
 
         # Get current canvas size
@@ -55,9 +55,10 @@ class Clock:
         radius = min(width, height) // 2 - 1
 
         # ---- Clock Face ----
-        self.canvas.create_oval(cx - radius, cy - radius,
-                                cx + radius, cy + radius,
-                                outline=light, width=5)
+        self.canvas.create_oval(
+            cx - radius, cy - radius, cx + radius, cy + radius,
+            outline=light, width=5, tags="clock_elements"  # <-- CHANGED
+        )
 
         # ---- Minute & Hour Marks ----
         for i in range(60):
@@ -68,54 +69,66 @@ class Clock:
             x2 = cx + math.sin(angle) * radius
             y2 = cy - math.cos(angle) * radius
             width_line = 5 if i % 5 == 0 else 2
-            self.canvas.create_line(x1, y1, x2, y2, fill=light, width=width_line)
+            self.canvas.create_line(
+                x1, y1, x2, y2, fill=light, width=width_line, tags="clock_elements"  # <-- CHANGED
+            )
 
         # ---- Hour Numbers ----
         for i in range(1, 13):
             angle = i * math.pi / 6
             x = cx + math.sin(angle) * (radius - 70)
             y = cy - math.cos(angle) * (radius - 70)
-            self.canvas.create_text(x, y, text=str(i),
-                                    font=("Arial", radius // 10, "bold"),
-                                    fill=light)
+            self.canvas.create_text(
+                x, y, text=str(i),
+                font=("Arial", radius // 10, "bold"),
+                fill=light, tags="clock_elements"  # <-- CHANGED
+            )
 
         # ---- Time Hands ----
         now = time.localtime()
         hour_ang = (now.tm_hour % 12 + now.tm_min / 60) * math.pi / 6
         min_ang = now.tm_min * math.pi / 30
-        sec_ang = now.tm_sec * math.pi / 30
 
         # Hour hand
-        self.canvas.create_line(cx, cy,
-                                cx + math.sin(hour_ang) * (radius * 0.55),
-                                cy - math.cos(hour_ang) * (radius * 0.55),
-                                width=6, fill=light)
+        self.canvas.create_line(
+            cx, cy,
+            cx + math.sin(hour_ang) * (radius * 0.55),
+            cy - math.cos(hour_ang) * (radius * 0.55),
+            width=6, fill=light, tags="clock_elements"  # <-- CHANGED
+        )
+        self.canvas.create_line(
+            cx, cy,
+            cx - math.sin(hour_ang) * (radius * 0.1),
+            cy + math.cos(hour_ang) * (radius * 0.1),
+            width=6, fill=light, tags="clock_elements"  # <-- CHANGED
+        )
 
-        self.canvas.create_line(cx, cy,
-                                cx - math.sin(hour_ang) * (radius * 0.1),
-                                cy + math.cos(hour_ang) * (radius * 0.1),
-                                width=6, fill=light) 
-              
         # ---- Center Cap ----
-        self.canvas.create_oval(cx - 30, cy - 30, cx + 30, cy + 30,
-                                fill="black")
+        self.canvas.create_oval(
+            cx - 30, cy - 30, cx + 30, cy + 30,
+            fill="black", tags="clock_elements"  # <-- CHANGED
+        )
 
         # Minute hand
-        self.canvas.create_line(cx, cy,
-                                cx + math.sin(min_ang) * (radius * 0.65),
-                                cy - math.cos(min_ang) * (radius * 0.65),
-                                width=4, fill=light)
-        
-        self.canvas.create_line(cx, cy,
-                        cx - math.sin(min_ang) * (radius * 0.1),
-                        cy + math.cos(min_ang) * (radius * 0.1),
-                        width=4, fill=light)
-
+        self.canvas.create_line(
+            cx, cy,
+            cx + math.sin(min_ang) * (radius * 0.65),
+            cy - math.cos(min_ang) * (radius * 0.65),
+            width=4, fill=light, tags="clock_elements"  # <-- CHANGED
+        )
+        self.canvas.create_line(
+            cx, cy,
+            cx - math.sin(min_ang) * (radius * 0.1),
+            cy + math.cos(min_ang) * (radius * 0.1),
+            width=4, fill=light, tags="clock_elements"  # <-- CHANGED
+        )
 
         # ---- Label ----
-        self.canvas.create_text(cx, cy + radius * 0.4,
-                                text="Quartz", font=("Arial", radius // 15),
-                                fill=light)
+        self.canvas.create_text(
+            cx, cy + radius * 0.4,
+            text="Quartz", font=("Arial", radius // 15),
+            fill=light, tags="clock_elements"  # <-- CHANGED
+        )
 
     def update_clock(self):
         self.draw_clock()

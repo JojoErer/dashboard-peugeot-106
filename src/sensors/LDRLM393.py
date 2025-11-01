@@ -1,8 +1,12 @@
-import RPi.GPIO as GPIO
+try:
+    import RPi.GPIO as GPIO
+except ImportError:
+    RPI_AVAILABLE = False
+    print("[Warning] RPI not found — running in simulation mode.")
 import time
 
 class LightSensor:
-    def __init__(self, pin1=17, pin2=27):
+    def __init__(self, pin1=22, pin2=27):
         """
         Initializes the two light sensors.
         :param pin1: The GPIO pin where the first light sensor is connected (default is GPIO17).

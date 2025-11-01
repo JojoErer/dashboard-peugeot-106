@@ -12,6 +12,10 @@ from src.displays.accelerationDisplay import CarDisplay
 from src.displays.GPSDisplay import OfflineMap
 import itertools
 
+from src.displays.temperatureDisplay import SensorOverlay
+
+from src.sensors.LDRLM393 import LightSensor
+from src.displays.lightDisplay import LightDisplay
 
 # ===============================================================
 # Display Launchers
@@ -82,6 +86,26 @@ def run_gps_map():
 
     root.after(UPDATE_INTERVAL, update_position)
     root.mainloop()
+    
+def run_clock_with_sensors(test_mode=False):
+    """Launch the clock display with DHT11 temperature & humidity overlay."""
+    CAR_PIN = 4
+    VENT_PIN = 17
+
+    clock = Clock()
+    overlay = SensorOverlay(car_pin=CAR_PIN, vent_pin=VENT_PIN, clock=clock, test_mode=test_mode)
+    overlay.update_sensor_data()
+    clock.run()
+    
+def run_light_display(test_mode=False):
+
+    if test_mode:
+        sensor = None
+    else:
+        sensor = LightSensor(pin1=17, pin2=27)
+
+    display = LightDisplay(light_sensor=sensor, test_mode=test_mode)
+    display.run()
 
 
 # ===============================================================
@@ -95,14 +119,33 @@ def main_menu():
 
     tk.Label(root, text="Select a display mode:", font=("Arial", 14, "bold")).pack(pady=10)
 
-    tk.Button(root, text="🕒 Clock Display", font=("Arial", 12), width=25, command=lambda: [root.destroy(), run_clock()]).pack(pady=5)
-    tk.Button(root, text="📈 Acceleration Display", font=("Arial", 12), width=25, command=lambda: [root.destroy(), run_acceleration_display()]).pack(pady=5)
-    tk.Button(root, text="🗺️ GPS Map Viewer", font=("Arial", 12), width=25, command=lambda: [root.destroy(), run_gps_map()]).pack(pady=5)
+    # Real sensors
+    tk.Button(root, text="🕒 Clock + Temp/Humidity (Real Sensors)",
+              font=("Arial", 12), width=35,
+              command=lambda: [root.destroy(), run_clock_with_sensors(test_mode=False)]).pack(pady=5)
 
-    tk.Button(root, text="Exit", font=("Arial", 12), width=25, command=root.destroy).pack(pady=10)
+    # Test mode
+    tk.Button(root, text="🧪 Clock (Test Mode - No Sensors)",
+              font=("Arial", 12), width=35,
+              command=lambda: [root.destroy(), run_clock_with_sensors(test_mode=True)]).pack(pady=5)
+
+    tk.Button(root, text="📈 Acceleration Display", font=("Arial", 12),
+              width=35, command=lambda: [root.destroy(), run_acceleration_display()]).pack(pady=5)
+
+    tk.Button(root, text="🗺️ GPS Map Viewer", font=("Arial", 12),
+              width=35, command=lambda: [root.destroy(), run_gps_map()]).pack(pady=5)
+    
+    tk.Button(root, text="💡 Light Sensors", font=("Arial", 12), width=25,
+          command=lambda: [root.destroy(), run_light_display(test_mode=False)]).pack(pady=5)
+    
+    tk.Button(root, text="💡 Light Sensors (Test Mode)", font=("Arial", 12), width=25,
+          command=lambda: [root.destroy(), run_light_display(test_mode=True)]).pack(pady=5)
+    
+    tk.Button(root, text="Exit", font=("Arial", 12), width=35,
+              command=root.destroy).pack(pady=10)
+
 
     root.mainloop()
-
 
 # ===============================================================
 # Entry point
