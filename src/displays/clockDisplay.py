@@ -11,12 +11,12 @@ class Clock:
         # === Cross-platform fullscreen setup ===
         if sys.platform.startswith("linux"):
             try:
-                self.root.attributes("-zoomed", True)
+                self.root.attributes("-zoomed", False)
             except tk.TclError:
                 pass
-            self.root.attributes("-fullscreen", True)
+            self.root.attributes("-fullscreen", False)
         else:
-            self.root.attributes("-fullscreen", True)
+            self.root.attributes("-fullscreen", False)
 
         # Remove window borders (kiosk mode)
         self.root.overrideredirect(True)

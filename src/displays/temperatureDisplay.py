@@ -12,7 +12,7 @@ class SensorOverlay:
         """
         self.sensor_system = DHT11Sensor(car_pin, vent_pin)
         self.clock = clock
-        self.test_mode = test_mode or not ADAFRUIT_AVAILABLE  # auto-enable if Adafruit missing
+        self.test_mode = test_mode  # auto-enable simulation mode
 
         # Fake data baseline for pure test mode
         self.fake_car_temp = 22.0
@@ -28,8 +28,8 @@ class SensorOverlay:
         if self.test_mode:
             car_temp, car_hum, vent_temp, vent_hum = self._generate_fake_data()
         else:
-            car_temp, car_hum = self.sensor_system.read_sensor_data(self.sensor_system.car_pin)
-            vent_temp, vent_hum = self.sensor_system.read_sensor_data(self.sensor_system.vent_pin)
+            car_temp, car_hum = self.sensor_system.read_sensor_data('car')
+            vent_temp, vent_hum = self.sensor_system.read_sensor_data('vent')
 
         if (car_temp is not None and car_hum is not None and
                 vent_temp is not None and vent_hum is not None):
@@ -37,8 +37,8 @@ class SensorOverlay:
         else:
             self.overlay_error("Sensor read failed")
 
-        # Update every 10 seconds in test mode, 60 seconds otherwise
-        delay = 1000 if self.test_mode else 1000
+        # Update every 1 second 
+        delay = 1000
         self.clock.root.after(delay, self.update_sensor_data)
 
     # ---------------------------------------------------------------------
@@ -83,7 +83,6 @@ class SensorOverlay:
             text=text_vent, font=("Arial", int(radius / 20), "bold"),
             fill="white", anchor="w", tags="sensor_text"
         )
-
 
     def overlay_error(self, message):
         """Show a brief error message on the display."""
