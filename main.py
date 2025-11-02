@@ -1,19 +1,13 @@
-import tkinter as tk
-from tkinter import messagebox
+import sys
+import itertools
+from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QLabel
 
-# --- Clock display ---
+# --- Imports for displays & sensors ---
 from src.displays.clockDisplay import Clock
-
-# --- Acceleration display ---
 from src.sensors.MPU6050 import MPU6050
 from src.displays.accelerationDisplay import CarDisplay
-
-# --- GPS map viewer ---
-from src.displays.GPSDisplay import OfflineMap
-import itertools
-
+from src.displays.GPSDisplay import GPSMapWidget # Updated version that returns QImage
 from src.displays.temperatureDisplay import SensorOverlay
-
 from src.sensors.LDRLM393 import LightSensor
 from src.displays.lightDisplay import LightDisplay
 
@@ -22,16 +16,11 @@ from src.displays.lightDisplay import LightDisplay
 # ===============================================================
 
 def run_clock():
-    """Launch the Clock display."""
-    clock = Clock()
-    clock.run()
-
+    Clock().run()
 
 def run_acceleration_display():
-    """Launch the 3D car acceleration visualization."""
     sensor = MPU6050()
     sensor.init_sensor()
-
     print("Calibrating accelerometer...")
     sensor.calibrate_accelerometer()
 
@@ -43,52 +32,9 @@ def run_acceleration_display():
         show_graph=False,
         smoothing=1.0
     )
-
     display.run(sensor.get_calibrated_acceleration)
 
-
-def run_gps_map():
-    """Launch the offline map with a moving car."""
-    MAP_FOLDER = r"lib/mapNL"
-    ZOOM = 14
-    TILE_SIZE = 500
-    VIEW_SIZE = 800
-    UPDATE_INTERVAL = 1000    # milliseconds between updates
-
-    gps_points = [
-        (52.0907, 5.1214),
-        (52.0910, 5.1225),
-        (52.0915, 5.1238),
-        (52.0920, 5.1250),
-        (52.0923, 5.1262),
-        (52.0927, 5.1275),
-        (52.0931, 5.1288),
-    ]
-
-    gps_cycle = itertools.cycle(gps_points)
-    map_viewer = OfflineMap(MAP_FOLDER, zoom=ZOOM, tile_size=TILE_SIZE, view_size=VIEW_SIZE)
-
-    root = tk.Tk()
-    root.title("Offline Map Viewer - Moving Car")
-
-    lat, lon = next(gps_cycle)
-    img = map_viewer.render_map(lat, lon)
-    label = tk.Label(root, image=img)
-    label.pack()
-
-    def update_position():
-        nonlocal img
-        lat, lon = next(gps_cycle)
-        img = map_viewer.render_map(lat, lon)
-        label.configure(image=img)
-        label.image = img
-        root.after(UPDATE_INTERVAL, update_position)
-
-    root.after(UPDATE_INTERVAL, update_position)
-    root.mainloop()
-    
 def run_clock_with_sensors(test_mode=False):
-    """Launch the clock display with DHT11 temperature & humidity overlay."""
     CAR_PIN = 17
     VENT_PIN = 27
 
@@ -96,63 +42,62 @@ def run_clock_with_sensors(test_mode=False):
     overlay = SensorOverlay(car_pin=CAR_PIN, vent_pin=VENT_PIN, clock=clock, test_mode=test_mode)
     overlay.update_sensor_data()
     clock.run()
-    
+
 def run_light_display(test_mode=False):
-
-    if test_mode:
-        sensor = None
-    else:
-        sensor = LightSensor(pin1=22, pin2=10)
-
+    sensor = None if test_mode else LightSensor(pin1=22, pin2=10)
     display = LightDisplay(light_sensor=sensor, test_mode=test_mode)
     display.run()
 
+# ===============================================================
+# Main Menu Widget
+# ===============================================================
+
+class MainMenu(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Main Display Selector")
+        self.resize(400, 400)
+
+        layout = QVBoxLayout()
+        self.setLayout(layout)
+        layout.addWidget(QLabel("Select a display mode:"))
+
+        # Buttons
+        btn_clock_real = QPushButton("🕒 Clock + Temp/Humidity (Real Sensors)")
+        btn_clock_test = QPushButton("🧪 Clock (Test Mode - No Sensors)")
+        btn_accel = QPushButton("📈 Acceleration Display")
+        btn_gps = QPushButton("🗺️ GPS Map Viewer")
+        btn_light_real = QPushButton("💡 Light Sensors")
+        btn_light_test = QPushButton("💡 Light Sensors (Test Mode)")
+        btn_exit = QPushButton("Exit")
+
+        for btn in [btn_clock_real, btn_clock_test, btn_accel, btn_gps, btn_light_real, btn_light_test, btn_exit]:
+            layout.addWidget(btn)
+
+        # Connect signals
+        btn_clock_real.clicked.connect(lambda: self.launch(run_clock_with_sensors, False))
+        btn_clock_test.clicked.connect(lambda: self.launch(run_clock_with_sensors, True))
+        btn_accel.clicked.connect(lambda: self.launch(run_acceleration_display))
+        btn_gps.clicked.connect(self.launch_gps_map)
+        btn_light_real.clicked.connect(lambda: self.launch(run_light_display, False))
+        btn_light_test.clicked.connect(lambda: self.launch(run_light_display, True))
+        btn_exit.clicked.connect(self.close)
+
+    def launch(self, func, *args):
+        self.close()
+        func(*args)
+
+    def launch_gps_map(self):
+        self.close()
+        self.gps_window = GPSMapWidget()
+        self.gps_window.show()
 
 # ===============================================================
-# Main menu (selection window)
-# ===============================================================
-
-def main_menu():
-    """Simple Tkinter menu to select display mode."""
-    root = tk.Tk()
-    root.title("Main Display Selector")
-
-    tk.Label(root, text="Select a display mode:", font=("Arial", 14, "bold")).pack(pady=10)
-
-    # Real sensors
-    tk.Button(root, text="🕒 Clock + Temp/Humidity (Real Sensors)",
-              font=("Arial", 12), width=35,
-              command=lambda: [root.destroy(), run_clock_with_sensors(test_mode=False)]).pack(pady=5)
-
-    # Test mode
-    tk.Button(root, text="🧪 Clock (Test Mode - No Sensors)",
-              font=("Arial", 12), width=35,
-              command=lambda: [root.destroy(), run_clock_with_sensors(test_mode=True)]).pack(pady=5)
-
-    tk.Button(root, text="📈 Acceleration Display", font=("Arial", 12),
-              width=35, command=lambda: [root.destroy(), run_acceleration_display()]).pack(pady=5)
-
-    tk.Button(root, text="🗺️ GPS Map Viewer", font=("Arial", 12),
-              width=35, command=lambda: [root.destroy(), run_gps_map()]).pack(pady=5)
-    
-    tk.Button(root, text="💡 Light Sensors", font=("Arial", 12), width=25,
-          command=lambda: [root.destroy(), run_light_display(test_mode=False)]).pack(pady=5)
-    
-    tk.Button(root, text="💡 Light Sensors (Test Mode)", font=("Arial", 12), width=25,
-          command=lambda: [root.destroy(), run_light_display(test_mode=True)]).pack(pady=5)
-    
-    tk.Button(root, text="Exit", font=("Arial", 12), width=35,
-              command=root.destroy).pack(pady=10)
-
-
-    root.mainloop()
-
-# ===============================================================
-# Entry point
+# Entry Point
 # ===============================================================
 
 if __name__ == "__main__":
-    try:
-        main_menu()
-    except KeyboardInterrupt:
-        print("Exiting...")
+    app = QApplication(sys.argv)
+    menu = MainMenu()
+    menu.show()
+    sys.exit(app.exec())

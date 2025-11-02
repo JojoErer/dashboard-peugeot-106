@@ -3,3 +3,4 @@
 *.blend
 *.obj
 *.mtl
+**/.venv/

@@ -1,21 +1,29 @@
 try:
     import adafruit_dht
-    import board
     ADAFRUIT_AVAILABLE = True
 except ImportError:
     ADAFRUIT_AVAILABLE = False
     print("[Warning] Adafruit_DHT library not found — running in simulation mode.")
 
 import random
+import board
 
 class DHT11Sensor:
-    PIN_MAP = {
-        4: board.D4,
-        17: board.D17,
-        27: board.D27,
-        22: board.D22
-    }
-
+    if ADAFRUIT_AVAILABLE:
+        PIN_MAP = {
+            4: board.D4,
+            17: board.D17,
+            27: board.D27,
+            22: board.D22
+        }
+    else:
+        PIN_MAP = {
+            4: 4,
+            17: 17,
+            27: 27,
+            22: 22
+        }
+        
     def __init__(self, car_pin=None, vent_pin=None):
         """
         Initialize DHT11 sensors for car and vent.
