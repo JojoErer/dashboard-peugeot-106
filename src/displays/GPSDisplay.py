@@ -68,11 +68,21 @@ class OfflineMap:
 class GPSMapWidget(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("GPS Map Viewer")
-        self.resize(800, 800)
+        
+        # --- Fullscreen & borderless ---
+        self.setWindowFlags(Qt.FramelessWindowHint)  # Remove borders and title bar
+        self.showFullScreen()  # Show fullscreen
+
+        # Get screen size dynamically
+        screen_geometry = QApplication.primaryScreen().geometry()
+        self.screen_width = screen_geometry.width()
+        self.screen_height = screen_geometry.height()
+        self.center_x = self.screen_width // 2
+        self.center_y = self.screen_height // 2
+        self.radius = min(self.screen_width, self.screen_height) // 2
 
         self.map_folder = "lib/mapNL"
-        self.map_viewer = OfflineMap(self.map_folder, view_size=800)
+        self.map_viewer = OfflineMap(self.map_folder, view_size=self.radius*2)  # Map size matches circle diameter
 
         # Demo GPS points
         self.gps_points = [
@@ -87,12 +97,13 @@ class GPSMapWidget(QWidget):
         self.gps_cycle = itertools.cycle(self.gps_points)
 
         self.label = QLabel(self)
-        self.label.setFixedSize(800, 800)
+        self.label.setAlignment(Qt.AlignCenter)
         layout = QVBoxLayout()
         layout.addWidget(self.label)
+        layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(layout)
 
-        # Precompute bump path with original wide shape
+        # Precompute bump path
         self.bump_width = 300
         self.bump_height = 150
         self.bump_path = QPainterPath()
@@ -116,7 +127,6 @@ class GPSMapWidget(QWidget):
         painter.translate(edge_x, edge_y)
         painter.rotate(-angle_deg - 90)
 
-        # Gradient: darker, faster fade
         gradient = QLinearGradient(0, -self.bump_height/4, 0, -self.bump_height)
         gradient.setColorAt(0, color)
         gradient.setColorAt(0.3, QColor(0, 0, 0, 200))
@@ -125,7 +135,6 @@ class GPSMapWidget(QWidget):
         painter.setPen(Qt.NoPen)
         painter.drawPath(self.bump_path)
 
-        # Draw horizontal text
         painter.rotate(angle_deg + 90)
         font = QFont("Arial", 20, QFont.Bold)
         painter.setFont(font)
@@ -139,32 +148,30 @@ class GPSMapWidget(QWidget):
         lat, lon = next(self.gps_cycle)
         map_img = self.map_viewer.render_map(lat, lon)
 
-        final_img = QImage(map_img.size(), QImage.Format_RGBA8888)
+        final_img = QImage(self.screen_width, self.screen_height, QImage.Format_RGBA8888)
         final_img.fill(QColor("black"))
 
         painter = QPainter(final_img)
         painter.setRenderHint(QPainter.Antialiasing)
 
-        # --- Main circular map ---
-        center = 400
-        radius = 400
+        # --- Fullscreen circular map ---
         path = QPainterPath()
-        path.addEllipse(0, 0, radius*2, radius*2)
+        path.addEllipse(self.center_x - self.radius, self.center_y - self.radius, self.radius*2, self.radius*2)
         painter.setClipPath(path)
-        painter.drawImage(0, 0, map_img)
+        painter.drawImage(self.center_x - self.radius, self.center_y - self.radius, map_img)
         painter.setClipping(False)
 
         # --- Red car dot ---
         dot_radius = 12
         painter.setBrush(QColor("red"))
         painter.setPen(Qt.NoPen)
-        painter.drawEllipse(center - dot_radius//2, center - dot_radius//2, dot_radius, dot_radius)
+        painter.drawEllipse(self.center_x - dot_radius//2, self.center_y - dot_radius//2, dot_radius, dot_radius)
 
         # --- Draw bumps ---
         velocity = random.randint(0, 120)
         now = datetime.now().strftime("%H:%M")
-        self.draw_edge_bump(painter, center, center, 60, radius, QColor("black"), f"{velocity} km/h")
-        self.draw_edge_bump(painter, center, center, 120, radius, QColor("black"), now)
+        self.draw_edge_bump(painter, self.center_x, self.center_y, 60, self.radius, QColor("black"), f"{velocity} km/h")
+        self.draw_edge_bump(painter, self.center_x, self.center_y, 120, self.radius, QColor("black"), now)
 
         painter.end()
         self.label.setPixmap(QPixmap.fromImage(final_img))
