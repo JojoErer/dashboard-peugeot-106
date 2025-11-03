@@ -3,18 +3,22 @@ Pillow
 numpy       
 matplotlib    
 
-# Sensors & hardware (adjust if using test mode)
-RPLCD
-RPi.GPIO    
-adafruit-circuitpython-dht 
-smbus2
-
 # Light sensor (LDR / LM393)
 # Replace with actual package if installed from PyPI
 # e.g., some custom library for your LDR
 
 # GUI
 PySide6
+pygame
+pywavefront
 
 # Optional graphics / 3D model display
 PyOpenGL
+
+setuptools
+# Sensors & hardware (adjust if using test mode)
+RPLCD
+RPi.GPIO 
+adafruit-DHT   
+adafruit-circuitpython-dht 
+smbus2

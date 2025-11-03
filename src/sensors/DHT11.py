@@ -1,12 +1,13 @@
 try:
     import adafruit_dht
+    import board
     ADAFRUIT_AVAILABLE = True
+    import board
 except ImportError:
     ADAFRUIT_AVAILABLE = False
     print("[Warning] Adafruit_DHT library not found — running in simulation mode.")
 
 import random
-import board
 
 class DHT11Sensor:
     if ADAFRUIT_AVAILABLE:
