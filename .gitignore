@@ -1,6 +1,7 @@
 *.pyc
-*.png
 *.blend
 *.obj
 *.mtl
 **/.venv/
+**/GUI/build
+**/lib/mapNL
