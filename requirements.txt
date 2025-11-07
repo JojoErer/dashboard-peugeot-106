@@ -14,6 +14,7 @@ pywavefront
 
 # Optional graphics / 3D model display
 PyOpenGL
+PyQt6
 
 setuptools
 # Sensors & hardware (adjust if using test mode)

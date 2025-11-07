@@ -2,14 +2,13 @@ try:
     import adafruit_dht
     import board
     ADAFRUIT_AVAILABLE = True
-    import board
 except ImportError:
     ADAFRUIT_AVAILABLE = False
     print("[Warning] Adafruit_DHT library not found — running in simulation mode.")
 
 import random
 
-class DHT11Sensor:
+class DHT11:
     if ADAFRUIT_AVAILABLE:
         PIN_MAP = {
             4: board.D4,
@@ -24,23 +23,17 @@ class DHT11Sensor:
             27: 27,
             22: 22
         }
-        
+
     def __init__(self, car_pin=None, vent_pin=None):
-        """
-        Initialize DHT11 sensors for car and vent.
-        :param car_pin: GPIO pin for the car sensor.
-        :param vent_pin: GPIO pin for the vent sensor.
-        """
         self.car_pin = car_pin
         self.vent_pin = vent_pin
-        self.sensors = {}  # dictionary to store sensor instances
+        self.sensors = {}
 
         if ADAFRUIT_AVAILABLE:
             if car_pin is not None:
                 if car_pin not in self.PIN_MAP:
                     raise ValueError(f"Invalid car pin: {car_pin}")
                 self.sensors['car'] = adafruit_dht.DHT11(self.PIN_MAP[car_pin])
-
             if vent_pin is not None:
                 if vent_pin not in self.PIN_MAP:
                     raise ValueError(f"Invalid vent pin: {vent_pin}")
@@ -49,18 +42,13 @@ class DHT11Sensor:
             self.sensors['car'] = None
             self.sensors['vent'] = None
 
-        # For simulation if Adafruit_DHT is not available
+        # For simulation
         self._fake_car_temp = 22.0
         self._fake_car_hum = 45.0
         self._fake_vent_temp = 21.0
         self._fake_vent_hum = 47.0
 
     def read_sensor_data(self, sensor_name):
-        """
-        Read temperature and humidity from a DHT11 sensor.
-        :param sensor_name: 'car' or 'vent'
-        :return: tuple (temperature, humidity) or (None, None) if failed.
-        """
         if sensor_name not in self.sensors:
             raise ValueError(f"Invalid sensor name: {sensor_name}. Must be 'car' or 'vent'.")
 
@@ -73,14 +61,12 @@ class DHT11Sensor:
                 else:
                     return None, None
             except RuntimeError as err:
-                # DHT sensors often fail; return None in that case
                 print(f"[Warning] Sensor {sensor_name} read error: {err}")
                 return None, None
         else:
             return self._simulate_fake_data(sensor_name)
 
     def _simulate_fake_data(self, sensor_name):
-        """Generate simulated data for development without hardware."""
         if sensor_name == 'car':
             self._fake_car_temp += random.uniform(-0.2, 0.2)
             self._fake_car_hum += random.uniform(-0.5, 0.5)

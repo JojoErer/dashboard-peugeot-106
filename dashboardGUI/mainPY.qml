@@ -16,21 +16,8 @@ Window {
 
     // ====== Global State ======
     property string currentView: "gps"    // "gps", "clock", "data", "accel"
-    property color dayColor: isDaytime ? "white" : "yellow"
-    property bool isDaytime: true
-
-    // ====== Data from Python ======
-    //property string gpsTime: "00:00"       // Updated by Python
-    //property double velocity: 0            // Updated by Python
-    //property double tempInside: 0          // Updated by Python
-    //property double tempOutside: 0         // Updated by Python
-    //property double humidityInside: 0      // Updated by Python
-    //property double humidityOutside: 0     // Updated by Python
-    //property double piTemperature: 0       // Updated by Python
-    //property double ax: 0                  // Updated by Python
-    //property double ay: 0                  // Updated by Python
-    //property double centerLat: 52.1070     // GPS Latitude from Python
-    //property double centerLon: 5.1214      // GPS Longitude from Python
+    property bool isDaytime: backend.isDaytime
+    property color dayColor: backend.isDaytime ? "white" : "yellow"
 
     // ====== VIEWS ======
 

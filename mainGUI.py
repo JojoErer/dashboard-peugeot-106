@@ -1,28 +1,18 @@
-# from PySide6.QtGui import QGuiApplication
-# from PySide6.QtQml import QQmlApplicationEngine
-# import PyQt6.QtCore
-# import sys
-
-# app = QGuiApplication(sys.argv)
-# engine = QQmlApplicationEngine()
-
-# engine.load("mainPY.qml")
-
-# if not engine.rootObjects():
-#     sys.exit(-1)
-
-# sys.exit(app.exec())
-
+# main.py
 import sys
 import random
+import os
 from PySide6.QtCore import QObject, Signal, Property, QTimer
 from PySide6.QtWidgets import QApplication
 from PySide6.QtQml import QQmlApplicationEngine
 import PyQt6.QtCore
+from src.sensors.DHT11 import DHT11
+from src.sensors.LDRLM393 import LightSensor
 
-# ----- Python backend exposed to QML -----
+
+# ===== Backend exposed to QML =====
 class DashboardBackend(QObject):
-    # Signals must be emitted to notify QML about changes
+    # Existing signals
     velocityChanged = Signal()
     tempInsideChanged = Signal()
     tempOutsideChanged = Signal()
@@ -35,8 +25,13 @@ class DashboardBackend(QObject):
     centerLatChanged = Signal()
     centerLonChanged = Signal()
 
+    # New day/night signals
+    isDaytimeChanged = Signal()
+    dayColorChanged = Signal()
+
     def __init__(self):
         super().__init__()
+        # data variables
         self._velocity = 0
         self._tempInside = 0
         self._tempOutside = 0
@@ -48,12 +43,12 @@ class DashboardBackend(QObject):
         self._ay = 0
         self._centerLat = 52.1070
         self._centerLon = 5.1214
+        self._isDaytime = True  # default day
+        self._dayColor = "white"
 
-    # ===== Properties =====
+    # ---------- Data Properties ----------
     @Property(float, notify=velocityChanged)
-    def velocity(self):
-        return self._velocity
-
+    def velocity(self): return self._velocity
     @velocity.setter
     def velocity(self, val):
         if self._velocity != val:
@@ -61,9 +56,7 @@ class DashboardBackend(QObject):
             self.velocityChanged.emit()
 
     @Property(float, notify=tempInsideChanged)
-    def tempInside(self):
-        return self._tempInside
-
+    def tempInside(self): return self._tempInside
     @tempInside.setter
     def tempInside(self, val):
         if self._tempInside != val:
@@ -71,9 +64,7 @@ class DashboardBackend(QObject):
             self.tempInsideChanged.emit()
 
     @Property(float, notify=tempOutsideChanged)
-    def tempOutside(self):
-        return self._tempOutside
-
+    def tempOutside(self): return self._tempOutside
     @tempOutside.setter
     def tempOutside(self, val):
         if self._tempOutside != val:
@@ -81,9 +72,7 @@ class DashboardBackend(QObject):
             self.tempOutsideChanged.emit()
 
     @Property(float, notify=humidityInsideChanged)
-    def humidityInside(self):
-        return self._humidityInside
-
+    def humidityInside(self): return self._humidityInside
     @humidityInside.setter
     def humidityInside(self, val):
         if self._humidityInside != val:
@@ -91,9 +80,7 @@ class DashboardBackend(QObject):
             self.humidityInsideChanged.emit()
 
     @Property(float, notify=humidityOutsideChanged)
-    def humidityOutside(self):
-        return self._humidityOutside
-
+    def humidityOutside(self): return self._humidityOutside
     @humidityOutside.setter
     def humidityOutside(self, val):
         if self._humidityOutside != val:
@@ -101,9 +88,7 @@ class DashboardBackend(QObject):
             self.humidityOutsideChanged.emit()
 
     @Property(float, notify=piTemperatureChanged)
-    def piTemperature(self):
-        return self._piTemperature
-
+    def piTemperature(self): return self._piTemperature
     @piTemperature.setter
     def piTemperature(self, val):
         if self._piTemperature != val:
@@ -111,9 +96,7 @@ class DashboardBackend(QObject):
             self.piTemperatureChanged.emit()
 
     @Property(str, notify=gpsTimeChanged)
-    def gpsTime(self):
-        return self._gpsTime
-
+    def gpsTime(self): return self._gpsTime
     @gpsTime.setter
     def gpsTime(self, val):
         if self._gpsTime != val:
@@ -121,9 +104,7 @@ class DashboardBackend(QObject):
             self.gpsTimeChanged.emit()
 
     @Property(float, notify=axChanged)
-    def ax(self):
-        return self._ax
-
+    def ax(self): return self._ax
     @ax.setter
     def ax(self, val):
         if self._ax != val:
@@ -131,9 +112,7 @@ class DashboardBackend(QObject):
             self.axChanged.emit()
 
     @Property(float, notify=ayChanged)
-    def ay(self):
-        return self._ay
-
+    def ay(self): return self._ay
     @ay.setter
     def ay(self, val):
         if self._ay != val:
@@ -141,9 +120,7 @@ class DashboardBackend(QObject):
             self.ayChanged.emit()
 
     @Property(float, notify=centerLatChanged)
-    def centerLat(self):
-        return self._centerLat
-
+    def centerLat(self): return self._centerLat
     @centerLat.setter
     def centerLat(self, val):
         if self._centerLat != val:
@@ -151,17 +128,29 @@ class DashboardBackend(QObject):
             self.centerLatChanged.emit()
 
     @Property(float, notify=centerLonChanged)
-    def centerLon(self):
-        return self._centerLon
-
+    def centerLon(self): return self._centerLon
     @centerLon.setter
     def centerLon(self, val):
         if self._centerLon != val:
             self._centerLon = val
             self.centerLonChanged.emit()
 
+    # ---------- Day/Night Properties ----------
+    @Property(bool, notify=isDaytimeChanged)
+    def isDaytime(self): return self._isDaytime
+    @isDaytime.setter
+    def isDaytime(self, val):
+        if self._isDaytime != val:
+            self._isDaytime = val
+            self.isDaytimeChanged.emit()
+            self.dayColorChanged.emit()
 
-# ----- Main Application -----
+    @Property(str, notify=dayColorChanged)
+    def dayColor(self):
+        return "white" if self._isDaytime else "yellow"
+
+
+# ===== Main Application =====
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     engine = QQmlApplicationEngine()
@@ -169,21 +158,40 @@ if __name__ == "__main__":
     backend = DashboardBackend()
     engine.rootContext().setContextProperty("backend", backend)
 
-    # Load QML relative to this script
-    import os
-    qml_file = os.path.join(os.path.dirname(__file__), "mainPY.qml")
+    qml_file = os.path.join(os.path.dirname(__file__), "dashboardGUI/mainPY.qml")
     engine.load(qml_file)
-
     if not engine.rootObjects():
         sys.exit(-1)
 
-    # ----- Example: Update values periodically -----
+    # Initialize sensors
+    dht = DHT11(car_pin=4, vent_pin=17)
+    light_sensor = LightSensor(pin1=22, pin2=10)
+    light_sensor.initialize()
+
+    # ----- Update cycle -----
     def update_values():
+        # DHT11 readings
+        car_temp, car_hum = dht.read_sensor_data("car")
+        vent_temp, vent_hum = dht.read_sensor_data("vent")
+
+        if car_temp is not None:
+            backend.tempInside = car_temp
+        if car_hum is not None:
+            backend.humidityInside = car_hum
+        if vent_temp is not None:
+            backend.tempOutside = vent_temp
+        if vent_hum is not None:
+            backend.humidityOutside = vent_hum
+
+        # Light sensor readings
+        light1 = light_sensor.read_light_intensity(light_sensor.pin1)
+        light2 = light_sensor.read_light_intensity(light_sensor.pin2)
+        avg_light = (light1 + light2) / 2.0
+
+        backend.isDaytime = avg_light >= 0.5  # bright → day, dark → night
+
+        # Simulated / other dynamic values
         backend.velocity = random.uniform(0, 120)
-        backend.tempInside = random.uniform(18, 25)
-        backend.tempOutside = random.uniform(10, 35)
-        backend.humidityInside = random.uniform(30, 70)
-        backend.humidityOutside = random.uniform(20, 80)
         backend.piTemperature = random.uniform(30, 60)
         backend.ax = random.uniform(-2, 2)
         backend.ay = random.uniform(-2, 2)
@@ -193,6 +201,6 @@ if __name__ == "__main__":
 
     timer = QTimer()
     timer.timeout.connect(update_values)
-    timer.start(1000)  # update every second
+    timer.start(2000)  # update every 2 seconds
 
     sys.exit(app.exec())
