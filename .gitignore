@@ -3,5 +3,4 @@
 *.obj
 *.mtl
 **/.venv/
-**/GUI/build
-**/lib/mapNL
+**/lib/mapNL/
