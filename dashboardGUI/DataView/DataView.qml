@@ -25,44 +25,19 @@ Item {
     Column {
         anchors.centerIn: parent
         spacing: 0
-        anchors.horizontalCenter: parent.horizontalCenter
-
-        // // --- Velocity ---
-        // Rectangle {
-        //     id: velocityBox
-        //     radius: 12
-        //     color: "black"           // dark modern background
-        //     border.color: "#00AEEF" // accent border
-        //     border.width: 2
-        //     anchors.horizontalCenter: parent.horizontalCenter
-
-        //     // size according to content
-        //     width: velocityText.implicitWidth + 100   // add some padding
-        //     height: velocityText.implicitHeight + 20
-
-        //     Text {
-        //         id: velocityText
-        //         text: velocity.toFixed(1) + " km/h"
-        //         font.pixelSize: 28
-        //         font.bold: true
-        //         color: textColor
-        //         anchors.centerIn: parent
-        //     }
-        // }
 
         // --- Gauges ---
         Column {
-            anchors.horizontalCenter: parent.horizontalCenter
-            spacing: 0   // space between top row and Pi gauge
+            spacing: -38  // space between top row and Pi gauge
 
             // Top row: inside and outside sensors
             Row {
-                spacing: 0
-                anchors.horizontalCenter: parent.horizontalCenter
+                spacing: -10
+
 
                 // Inside sensor + icon
                 Column {
-                    spacing: -20
+                    spacing: -10
 
                     TemperatureAndHumidityGauge {
                         width: 300
@@ -75,20 +50,22 @@ Item {
                         maxHumidity: 100
                         showHumidity: true
                         dialColor: textColor
-                        needleColor: "#00AEEF"
+                        needleColor: textColor // "#FFAA00"
+                        anchors.horizontalCenter: parent.horizontalCenter
                     }
 
                     Image {
                         width: 32
                         height: 32
                         source: "../lib/icons/carIcon.png"
+                        anchors.horizontalCenter: parent.horizontalCenter
                         fillMode: Image.PreserveAspectFit
                     }
                 }
 
                 // Outside sensor + icon
                 Column {
-                    spacing: -30
+                    spacing: -10
 
                     TemperatureAndHumidityGauge {
                         width: 300
@@ -101,15 +78,15 @@ Item {
                         maxHumidity: 100
                         showHumidity: true
                         dialColor: textColor
-                        needleColor: "#00AEEF"
+                        needleColor: textColor //"#FFAA00"
                     }
 
                     Image {
                         width: 32
                         height: 32
                         source: "../lib/icons/windIcon.png"
+                        anchors.horizontalCenter: parent.horizontalCenter
                         fillMode: Image.PreserveAspectFit
-                        anchors.horizontalCenter: parent.horizontalCente
                     }
                 }
             }
@@ -120,20 +97,21 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
 
                 TemperatureAndHumidityGauge {
-                    width: 200
-                    height: 200
+                    width: 240
+                    height: 240
                     temperature: piTemperature
                     minTemperature: 20
                     maxTemperature: 80
                     showHumidity: false
                     dialColor: textColor
-                    needleColor: "#FFAA00"
+                    needleColor: textColor // "#FFAA00"
                 }
 
                 Image {
                     width: 30
                     height: 30
                     source: "../lib/icons/raspberryPIIcon.png"
+                    anchors.horizontalCenter: parent.horizontalCenter
                     fillMode: Image.PreserveAspectFit
 
                 }

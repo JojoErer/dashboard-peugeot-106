@@ -1,15 +1,22 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(GUI VERSION 0.1 LANGUAGES CXX)
+project(dashboardGUI VERSION 1.0 LANGUAGES CXX)
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Qt6 6.2 COMPONENTS Quick location positioning REQUIRED)
+set(CMAKE_PREFIX_PATH "C:/Qt2/6.10.0/mingw_64/lib/cmake")
+find_package(Qt6 6.2 COMPONENTS Quick REQUIRED)
 
 qt_add_executable(apptest
     main.cpp
 )
+
+# qt_add_library(apptest
+#     SHARED
+#     # If you have any C++ QML types, include them here
+#     main.cpp # optional if you have C++ backend code
+# )
 
 qt_add_qml_module(apptest
     URI test
@@ -22,7 +29,10 @@ qt_add_qml_module(apptest
     QML_FILES AccelerationView/AccelerationView.qml
     QML_FILES ClockView/ClockView.qml DataView/DataView.qml
     QML_FILES DataView/TemperatureAndHumidityGauge.qml
-    RESOURCES lib/icons/carIcon.png lib/icons/raspberryPIIcon.png lib/icons/windIcon.png)
+    RESOURCES lib/icons/carIcon.png lib/icons/raspberryPIIcon.png lib/icons/windIcon.png
+    RESOURCES lib/peugeotLogo/peugeotLogoSilver.png
+    RESOURCES lib/icons/TopDownRedCar.png
+    QML_FILES mainPY.qml)
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an
@@ -36,9 +46,7 @@ set_target_properties(apptest PROPERTIES
 )
 
 target_link_libraries(apptest
-    PRIVATE Qt6::Quick
-    PRIVATE Qt6::Location
-    PRIVATE Qt6::Positioning)
+    PRIVATE Qt6::Quick)
 
 include(GNUInstallDirs)
 install(TARGETS apptest
