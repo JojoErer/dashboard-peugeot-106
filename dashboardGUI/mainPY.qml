@@ -20,17 +20,17 @@ Window {
     property bool isDaytime: true
 
     // ====== Data from Python ======
-    property string gpsTime: "00:00"       // Updated by Python
-    property double velocity: 0            // Updated by Python
-    property double tempInside: 0          // Updated by Python
-    property double tempOutside: 0         // Updated by Python
-    property double humidityInside: 0      // Updated by Python
-    property double humidityOutside: 0     // Updated by Python
-    property double piTemperature: 0       // Updated by Python
-    property double ax: 0                  // Updated by Python
-    property double ay: 0                  // Updated by Python
-    property double centerLat: 52.1070     // GPS Latitude from Python
-    property double centerLon: 5.1214      // GPS Longitude from Python
+    //property string gpsTime: "00:00"       // Updated by Python
+    //property double velocity: 0            // Updated by Python
+    //property double tempInside: 0          // Updated by Python
+    //property double tempOutside: 0         // Updated by Python
+    //property double humidityInside: 0      // Updated by Python
+    //property double humidityOutside: 0     // Updated by Python
+    //property double piTemperature: 0       // Updated by Python
+    //property double ax: 0                  // Updated by Python
+    //property double ay: 0                  // Updated by Python
+    //property double centerLat: 52.1070     // GPS Latitude from Python
+    //property double centerLon: 5.1214      // GPS Longitude from Python
 
     // ====== VIEWS ======
 
@@ -40,8 +40,8 @@ Window {
         anchors.fill: parent
         visible: root.currentView === "gps"
         zoom: 14
-        centerLat: root.centerLat
-        centerLon: root.centerLon
+        centerLat: backend.centerLat
+        centerLon: backend.centerLon
 
         Behavior on centerLat { NumberAnimation { duration: 500; easing.type: Easing.InOutQuad } }
         Behavior on centerLon { NumberAnimation { duration: 500; easing.type: Easing.InOutQuad } }
@@ -53,12 +53,12 @@ Window {
         anchors.centerIn: parent
         visible: root.currentView === "data"
 
-        velocity: root.velocity
-        tempInside: root.tempInside
-        tempOutside: root.tempOutside
-        humidityInside: root.humidityInside
-        humidityOutside: root.humidityOutside
-        piTemperature: root.piTemperature
+        velocity: backend.velocity
+        tempInside: backend.tempInside
+        tempOutside: backend.tempOutside
+        humidityInside: backend.humidityInside
+        humidityOutside: backend.humidityOutside
+        piTemperature: backend.piTemperature
         textColor: root.dayColor
     }
 
@@ -69,7 +69,7 @@ Window {
         visible: root.currentView === "clock"
 
         clockColor: root.dayColor
-        gpsTime: root.gpsTime
+        gpsTime: backend.gpsTime
     }
 
     // --- Acceleration View ---
@@ -78,18 +78,17 @@ Window {
         anchors.fill: parent
         visible: root.currentView === "accel"
 
-        ax: root.ax
-        ay: root.ay
+        ax: backend.ax
+        ay: backend.ay
         textColor: root.dayColor
     }
 
     // ====== UI OVERLAYS ======
-
     TopBar {
         id: topBar
         anchors.top: parent.top
-        speed: root.velocity
-        gpsTime: root.gpsTime
+        speed: backend.velocity
+        gpsTime: backend.gpsTime
         textColor: root.dayColor
         visible: root.currentView !== "clock"
     }

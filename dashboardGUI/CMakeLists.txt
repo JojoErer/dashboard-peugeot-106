@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(dashboardGUI VERSION 1.0 LANGUAGES CXX)
+project(apptest VERSION 1.0 LANGUAGES CXX)
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -11,6 +11,7 @@ find_package(Qt6 6.2 COMPONENTS Quick REQUIRED)
 qt_add_executable(apptest
     main.cpp
 )
+set_target_properties(apptest PROPERTIES OUTPUT_NAME "dashboardGUI")
 
 # qt_add_library(apptest
 #     SHARED
@@ -32,7 +33,9 @@ qt_add_qml_module(apptest
     RESOURCES lib/icons/carIcon.png lib/icons/raspberryPIIcon.png lib/icons/windIcon.png
     RESOURCES lib/peugeotLogo/peugeotLogoSilver.png
     RESOURCES lib/icons/TopDownRedCar.png
-    QML_FILES mainPY.qml)
+    QML_FILES mainPY.qml
+    QML_FILES main.qml
+)
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an
