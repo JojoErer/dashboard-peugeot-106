@@ -1,52 +1,54 @@
 # main.py
 import sys
-import random
 import os
+import random
 from PySide6.QtCore import QObject, Signal, Property, QTimer
 from PySide6.QtWidgets import QApplication
 from PySide6.QtQml import QQmlApplicationEngine
 import PyQt6.QtCore
+
 from src.sensors.DHT11 import DHT11
 from src.sensors.LDRLM393 import LightSensor
+from src.sensors.VK162GPS import VK162GPS
+from src.sensors.MPU6050 import MPU6050
+from src.sensors.PiButton import Button
 
 
-# ===== Backend exposed to QML =====
 class DashboardBackend(QObject):
-    # Existing signals
+    # --- Signals for QML updates ---
     velocityChanged = Signal()
+    gpsTimeChanged = Signal()
+    centerLatChanged = Signal()
+    centerLonChanged = Signal()
     tempInsideChanged = Signal()
     tempOutsideChanged = Signal()
     humidityInsideChanged = Signal()
     humidityOutsideChanged = Signal()
     piTemperatureChanged = Signal()
-    gpsTimeChanged = Signal()
     axChanged = Signal()
     ayChanged = Signal()
-    centerLatChanged = Signal()
-    centerLonChanged = Signal()
-
-    # New day/night signals
     isDaytimeChanged = Signal()
     dayColorChanged = Signal()
+    gpsConnectedChanged = Signal()
+    nextViewRequested = Signal()
 
     def __init__(self):
         super().__init__()
-        # data variables
-        self._velocity = 0
-        self._tempInside = 0
-        self._tempOutside = 0
-        self._humidityInside = 0
-        self._humidityOutside = 0
-        self._piTemperature = 0
+        self._velocity = 0.0
         self._gpsTime = "00:00"
-        self._ax = 0
-        self._ay = 0
         self._centerLat = 52.1070
         self._centerLon = 5.1214
-        self._isDaytime = True  # default day
-        self._dayColor = "white"
+        self._tempInside = 0.0
+        self._tempOutside = 0.0
+        self._humidityInside = 0.0
+        self._humidityOutside = 0.0
+        self._piTemperature = 0.0
+        self._ax = 0.0
+        self._ay = 0.0
+        self._isDaytime = True
+        self._gpsConnected = False
 
-    # ---------- Data Properties ----------
+    # --- Properties (same as before) ---
     @Property(float, notify=velocityChanged)
     def velocity(self): return self._velocity
     @velocity.setter
@@ -54,6 +56,30 @@ class DashboardBackend(QObject):
         if self._velocity != val:
             self._velocity = val
             self.velocityChanged.emit()
+
+    @Property(str, notify=gpsTimeChanged)
+    def gpsTime(self): return self._gpsTime
+    @gpsTime.setter
+    def gpsTime(self, val):
+        if self._gpsTime != val:
+            self._gpsTime = val
+            self.gpsTimeChanged.emit()
+
+    @Property(float, notify=centerLatChanged)
+    def centerLat(self): return self._centerLat
+    @centerLat.setter
+    def centerLat(self, val):
+        if self._centerLat != val:
+            self._centerLat = val
+            self.centerLatChanged.emit()
+
+    @Property(float, notify=centerLonChanged)
+    def centerLon(self): return self._centerLon
+    @centerLon.setter
+    def centerLon(self, val):
+        if self._centerLon != val:
+            self._centerLon = val
+            self.centerLonChanged.emit()
 
     @Property(float, notify=tempInsideChanged)
     def tempInside(self): return self._tempInside
@@ -95,14 +121,6 @@ class DashboardBackend(QObject):
             self._piTemperature = val
             self.piTemperatureChanged.emit()
 
-    @Property(str, notify=gpsTimeChanged)
-    def gpsTime(self): return self._gpsTime
-    @gpsTime.setter
-    def gpsTime(self, val):
-        if self._gpsTime != val:
-            self._gpsTime = val
-            self.gpsTimeChanged.emit()
-
     @Property(float, notify=axChanged)
     def ax(self): return self._ax
     @ax.setter
@@ -119,23 +137,6 @@ class DashboardBackend(QObject):
             self._ay = val
             self.ayChanged.emit()
 
-    @Property(float, notify=centerLatChanged)
-    def centerLat(self): return self._centerLat
-    @centerLat.setter
-    def centerLat(self, val):
-        if self._centerLat != val:
-            self._centerLat = val
-            self.centerLatChanged.emit()
-
-    @Property(float, notify=centerLonChanged)
-    def centerLon(self): return self._centerLon
-    @centerLon.setter
-    def centerLon(self, val):
-        if self._centerLon != val:
-            self._centerLon = val
-            self.centerLonChanged.emit()
-
-    # ---------- Day/Night Properties ----------
     @Property(bool, notify=isDaytimeChanged)
     def isDaytime(self): return self._isDaytime
     @isDaytime.setter
@@ -149,12 +150,21 @@ class DashboardBackend(QObject):
     def dayColor(self):
         return "white" if self._isDaytime else "yellow"
 
+    @Property(bool, notify=gpsConnectedChanged)
+    def gpsConnected(self): return self._gpsConnected
+    @gpsConnected.setter
+    def gpsConnected(self, val):
+        if self._gpsConnected != val:
+            self._gpsConnected = val
+            self.gpsConnectedChanged.emit()
 
-# ===== Main Application =====
+
+# ============================================================
+#                       MAIN APPLICATION
+# ============================================================
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     engine = QQmlApplicationEngine()
-
     backend = DashboardBackend()
     engine.rootContext().setContextProperty("backend", backend)
 
@@ -163,44 +173,61 @@ if __name__ == "__main__":
     if not engine.rootObjects():
         sys.exit(-1)
 
-    # Initialize sensors
+    # --- Initialize sensors ---
+    print("🔧 Initializing sensors...")
     dht = DHT11(car_pin=4, vent_pin=17)
     light_sensor = LightSensor(pin1=22, pin2=10)
     light_sensor.initialize()
 
-    # ----- Update cycle -----
+    gps_reader = VK162GPS()
+    gps_reader.initialize()
+    backend.gpsConnected = not gps_reader.test_mode
+
+    mpu = MPU6050()
+    mpu.initialize()
+
+    button = Button(pin=18)
+
+    # --- Main periodic update ---
     def update_values():
-        # DHT11 readings
+        # Temp & humidity
         car_temp, car_hum = dht.read_sensor_data("car")
         vent_temp, vent_hum = dht.read_sensor_data("vent")
+        if car_temp is not None: backend.tempInside = car_temp
+        if car_hum is not None: backend.humidityInside = car_hum
+        if vent_temp is not None: backend.tempOutside = vent_temp
+        if vent_hum is not None: backend.humidityOutside = vent_hum
 
-        if car_temp is not None:
-            backend.tempInside = car_temp
-        if car_hum is not None:
-            backend.humidityInside = car_hum
-        if vent_temp is not None:
-            backend.tempOutside = vent_temp
-        if vent_hum is not None:
-            backend.humidityOutside = vent_hum
-
-        # Light sensor readings
+        # Light
         light1 = light_sensor.read_light_intensity(light_sensor.pin1)
         light2 = light_sensor.read_light_intensity(light_sensor.pin2)
-        avg_light = (light1 + light2) / 2.0
+        backend.isDaytime = ((light1 + light2) / 2.0) >= 0.5
 
-        backend.isDaytime = avg_light >= 0.5  # bright → day, dark → night
+        # GPS
+        gps_data = gps_reader.get_data()
+        if gps_data:
+            if gps_data["latitude"] and gps_data["longitude"]:
+                backend.centerLat = gps_data["latitude"]
+                backend.centerLon = gps_data["longitude"]
+            backend.velocity = gps_data.get("speed", 0.0)
+            backend.gpsTime = gps_data.get("timestamp", "00:00")
 
-        # Simulated / other dynamic values
-        backend.velocity = random.uniform(0, 120)
-        backend.piTemperature = random.uniform(30, 60)
-        backend.ax = random.uniform(-2, 2)
-        backend.ay = random.uniform(-2, 2)
-        backend.gpsTime = f"{random.randint(0,23):02}:{random.randint(0,59):02}"
-        backend.centerLat = 52.1070 + random.uniform(-0.01, 0.01)
-        backend.centerLon = 5.1214 + random.uniform(-0.01, 0.01)
+        # Acceleration
+        ax, ay, az = mpu.read_accelerometer()
+        backend.ax = ax
+        backend.ay = ay
+
+        # Pi temp
+        backend.piTemperature = random.uniform(35, 55)
+
+        # Button press check
+        if button.is_pressed():
+            backend.nextViewRequested.emit()
+            print("[BUTTON] View switch requested")
 
     timer = QTimer()
     timer.timeout.connect(update_values)
-    timer.start(2000)  # update every 2 seconds
+    timer.start(1000)
 
+    print("✅ Dashboard running...")
     sys.exit(app.exec())

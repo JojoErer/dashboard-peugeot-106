@@ -26,6 +26,11 @@ class MPU6050:
         self.ay_offset = 0.0
         self.az_offset = 0.0
 
+    # ✅ Add this alias for consistency with other sensors
+    def initialize(self):
+        """Alias for init_sensor() to match other sensor classes."""
+        self.init_sensor()
+
     def init_sensor(self):
         """Initialize the sensor if connected, else stay in simulation mode."""
         if self.SMBUS_AVAILABLE:
@@ -42,15 +47,14 @@ class MPU6050:
     def read_accelerometer(self):
         """Read or simulate accelerometer data."""
         if self.SMBUS_AVAILABLE and self.MPU_CONNECTED:
-            # data = self.bus.read_i2c_block_data(self.MPU6050_ADDRESS, self.ACCEL_XOUT_H, 6)
             ax = self.read_raw_data(self.ACCEL_XOUT_H) / 16384.0
             ay = self.read_raw_data(self.ACCEL_XOUT_H + 2) / 16384.0
             az = self.read_raw_data(self.ACCEL_XOUT_H + 4) / 16384.0
         else:
             # Simulated data
-            ax = random.uniform(-0.5, 0.5)
-            ay = random.uniform(-0.5, 0.5)
-            az = random.uniform(0.8, 1.2)
+            ax = random.uniform(-2, 2)
+            ay = random.uniform(-2, 2)
+            az = random.uniform(-2, 2)
         return ax, ay, az
 
     def calibrate_accelerometer(self, num_samples=100):
@@ -73,11 +77,11 @@ class MPU6050:
         """Return calibrated accelerometer readings."""
         ax, ay, az = self.read_accelerometer()
         return ax - self.ax_offset, ay - self.ay_offset, az - self.az_offset
-    
+
     def read_raw_data(self, addr):
-        # Read two bytes of data from the given address
+        """Read two bytes of data from the given address."""
         high = self.bus.read_byte_data(self.MPU6050_ADDRESS, addr)
-        low = self.bus.read_byte_data(self.MPU6050_ADDRESS, addr+1)
+        low = self.bus.read_byte_data(self.MPU6050_ADDRESS, addr + 1)
         value = (high << 8) | low
         # Convert to signed value
         if value > 32767:

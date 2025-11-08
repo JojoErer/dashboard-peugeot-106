@@ -1,5 +1,5 @@
 import time
-from src.sensors.NEO6M import GPSReader
+from sensors.VK162GPS import GPSReader
 from displays.clockDisplay import Clock
 
 class VelocityOverlay:

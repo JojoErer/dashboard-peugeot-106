@@ -85,43 +85,16 @@ Window {
         visible: root.currentView !== "clock"
     }
 
-    Rectangle {
-        id: toggleButton
-        width: 180
-        height: 40
-        radius: 8
-        color: "#222"
-        border.color: "white"
-        border.width: 2
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.top: parent.top
-        anchors.topMargin: 10
-
-        Text {
-            anchors.centerIn: parent
-            color: "white"
-            font.pixelSize: 16
-            text: {
-                switch (root.currentView) {
-                    case "gps": return "Show Clock"
-                    case "clock": return "Show Data"
-                    case "data": return "Show Acceleration"
-                    default: return "Show GPS"
-                }
+    Connections {
+        target: backend
+        function onNextViewRequested() {
+        switch (root.currentView) {
+            case "gps": root.currentView = "clock"; break
+            case "clock": root.currentView = "data"; break
+            case "data": root.currentView = "accel"; break
+            default: root.currentView = "gps"
             }
-        }
-
-        MouseArea {
-            anchors.fill: parent
-            cursorShape: Qt.PointingHandCursor
-            onClicked: {
-                switch (root.currentView) {
-                    case "gps": root.currentView = "clock"; break
-                    case "clock": root.currentView = "data"; break
-                    case "data": root.currentView = "accel"; break
-                    default: root.currentView = "gps"
-                }
-            }
+        console.log("View switched to:", root.currentView)
         }
     }
 }
