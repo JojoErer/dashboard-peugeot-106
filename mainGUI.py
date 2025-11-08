@@ -1,4 +1,3 @@
-# main.py
 import sys
 import os
 import random
@@ -11,7 +10,7 @@ from src.sensors.DHT11 import DHT11
 from src.sensors.LDRLM393 import LightSensor
 from src.sensors.VK162GPS import VK162GPS
 from src.sensors.MPU6050 import MPU6050
-from src.sensors.PiButton import Button
+from src.sensors.ButtonHandler import ButtonHandler
 
 
 class DashboardBackend(QObject):
@@ -186,7 +185,7 @@ if __name__ == "__main__":
     mpu = MPU6050()
     mpu.initialize()
 
-    button = Button(pin=18)
+    buttons = ButtonHandler(pin_next=18, pin_extra=23)
 
     # --- Main periodic update ---
     def update_values():
@@ -220,10 +219,12 @@ if __name__ == "__main__":
         # Pi temp
         backend.piTemperature = random.uniform(35, 55)
 
-        # Button press check
-        if button.is_pressed():
+        # --- Check button presses ---
+        if buttons.is_pressed("next"):
             backend.nextViewRequested.emit()
-            print("[BUTTON] View switch requested")
+            print("[BUTTON] Next view requested")
+
+        # 'extra' button reserved for future use
 
     timer = QTimer()
     timer.timeout.connect(update_values)
