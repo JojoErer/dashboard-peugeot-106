@@ -145,8 +145,8 @@ class VK162GPS:
             return {
                 'latitude': 52.1070 + random.uniform(-0.005, 0.005),
                 'longitude': 5.1214 + random.uniform(-0.005, 0.005),
-                'speed': random.uniform(0, 120),
-                'timestamp': datetime.utcnow().strftime('%H:%M')
+                'speed': random.uniform(110, 120),
+                'timestamp': datetime.now().strftime('%H:%M')
             }
 
         nmea_sentence = self.read_gps_data()

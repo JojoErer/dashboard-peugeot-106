@@ -1,13 +1,14 @@
 import sys
 import os
 import random
+from gpiozero import CPUTemperature
 from PySide6.QtCore import QObject, Signal, Property, QTimer
 from PySide6.QtWidgets import QApplication
 from PySide6.QtQml import QQmlApplicationEngine
 import PyQt6.QtCore
 
 from src.sensors.DHT11 import DHT11
-from src.sensors.LDRLM393 import LightSensor
+from src.sensors.LDRLM393 import LDRLM393
 from src.sensors.VK162GPS import VK162GPS
 from src.sensors.MPU6050 import MPU6050
 from src.sensors.ButtonHandler import ButtonHandler
@@ -30,6 +31,7 @@ class DashboardBackend(QObject):
     dayColorChanged = Signal()
     gpsConnectedChanged = Signal()
     nextViewRequested = Signal()
+    nextOverlayRequested = Signal()
 
     def __init__(self):
         super().__init__()
@@ -175,7 +177,7 @@ if __name__ == "__main__":
     # --- Initialize sensors ---
     print("🔧 Initializing sensors...")
     dht = DHT11(car_pin=4, vent_pin=17)
-    light_sensor = LightSensor(pin1=22, pin2=10)
+    light_sensor = LDRLM393(pin1=22, pin2=10)
     light_sensor.initialize()
 
     gps_reader = VK162GPS()
@@ -217,18 +219,30 @@ if __name__ == "__main__":
         backend.ay = ay
 
         # Pi temp
-        backend.piTemperature = random.uniform(35, 55)
+        def get_cpu_temperature():
+            try:
+                cpu = CPUTemperature()
+                return cpu.temperature
+            except Exception:
+                return None
+
+        CPUTemp = get_cpu_temperature()
+        if CPUTemp is not None:
+            backend.piTemperature = CPUTemp
+        else:
+            backend.piTemperature = random.uniform(35, 55)
 
         # --- Check button presses ---
         if buttons.is_pressed("next"):
             backend.nextViewRequested.emit()
-            print("[BUTTON] Next view requested")
+            print("[BUTTON] Next view requested")    
 
-        # 'extra' button reserved for future use
+        if buttons.is_pressed("extra"):
+            backend.nextOverlayRequested.emit()
+            print("[BUTTON] Next overlay requested")  
 
     timer = QTimer()
     timer.timeout.connect(update_values)
     timer.start(1000)
 
-    print("✅ Dashboard running...")
     sys.exit(app.exec())

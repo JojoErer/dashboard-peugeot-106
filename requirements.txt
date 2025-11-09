@@ -17,6 +17,8 @@ PyOpenGL
 PyQt6
 
 setuptools
+gpiozero
+
 # Sensors & hardware (adjust if using test mode)
 RPLCD
 RPi.GPIO 

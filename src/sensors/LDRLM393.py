@@ -7,7 +7,7 @@ except ImportError:
     RPI_AVAILABLE = False
     print("[Warning] RPi.GPIO not found — running in simulation mode.")
 
-class LightSensor:
+class LDRLM393:
     def __init__(self, pin1=22, pin2=10):
         """
         Initializes the two light sensors.
@@ -19,10 +19,6 @@ class LightSensor:
             GPIO.setmode(GPIO.BCM)
             GPIO.setup(self.pin1, GPIO.IN)
             GPIO.setup(self.pin2, GPIO.IN)
-
-        # Simulated light intensity (0=dark, 1=bright)
-        self._sim_light1 = 1
-        self._sim_light2 = 1
 
     def read_light_intensity(self, pin):
         """
