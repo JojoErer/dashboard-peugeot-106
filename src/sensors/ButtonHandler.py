@@ -46,9 +46,9 @@ class ButtonHandler:
                 return True
         else:
             # Simulation mode: randomly trigger 'next' every few cycles
-            if name == "next" and random.random() < 0.5:
+            if name == "next" or name == 'extra' and random.random() < 0.5:
                 self.last_press_time[name] = now
-                print("[SIM] 'next' button pressed")
+                print("[SIM] button pressed")
                 return True
 
         return False

@@ -50,7 +50,7 @@ Item {
                         maxHumidity: 100
                         showHumidity: true
                         dialColor: textColor
-                        needleColor: textColor // "#FFAA00"
+                        needleColor: textColor
                         anchors.horizontalCenter: parent.horizontalCenter
                     }
 
@@ -78,7 +78,7 @@ Item {
                         maxHumidity: 100
                         showHumidity: true
                         dialColor: textColor
-                        needleColor: textColor //"#FFAA00"
+                        needleColor: textColor
                     }
 
                     Image {
@@ -104,7 +104,7 @@ Item {
                     maxTemperature: 80
                     showHumidity: false
                     dialColor: textColor
-                    needleColor: textColor // "#FFAA00"
+                    needleColor: textColor
                 }
 
                 Image {

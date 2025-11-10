@@ -6,12 +6,14 @@ from PySide6.QtCore import QObject, Signal, Property, QTimer
 from PySide6.QtWidgets import QApplication
 from PySide6.QtQml import QQmlApplicationEngine
 import PyQt6.QtCore
+import concurrent.futures
 
 from src.sensors.DHT11 import DHT11
 from src.sensors.LDRLM393 import LDRLM393
 from src.sensors.VK162GPS import VK162GPS
 from src.sensors.MPU6050 import MPU6050
 from src.sensors.ButtonHandler import ButtonHandler
+from src.DebuggingView import DebuggerWindow
 
 
 class DashboardBackend(QObject):
@@ -32,6 +34,7 @@ class DashboardBackend(QObject):
     gpsConnectedChanged = Signal()
     nextViewRequested = Signal()
     nextOverlayRequested = Signal()
+    calibrationStateChanged = Signal()
 
     def __init__(self):
         super().__init__()
@@ -48,6 +51,16 @@ class DashboardBackend(QObject):
         self._ay = 0.0
         self._isDaytime = True
         self._gpsConnected = False
+        self._calibrationState = ""
+    
+    def show_debugger(self):
+        """Open the Debugger popup window."""
+        if not hasattr(self, "_debugger") or self._debugger is None:
+            self._debugger = DebuggerWindow(self)
+        self._debugger.show()
+        self._debugger.raise_()
+        self._debugger.activateWindow()
+
 
     # --- Properties (same as before) ---
     @Property(float, notify=velocityChanged)
@@ -65,6 +78,15 @@ class DashboardBackend(QObject):
         if self._gpsTime != val:
             self._gpsTime = val
             self.gpsTimeChanged.emit()
+            
+    @Property(str, notify=calibrationStateChanged)
+    def calibrationState(self):
+        return self._calibrationState
+    @calibrationState.setter
+    def calibrationState(self, val):
+        if self._calibrationState != val:
+            self._calibrationState = val
+            self.calibrationStateChanged.emit()
 
     @Property(float, notify=centerLatChanged)
     def centerLat(self): return self._centerLat
@@ -188,6 +210,10 @@ if __name__ == "__main__":
     mpu.initialize()
 
     buttons = ButtonHandler(pin_next=18, pin_extra=23)
+    
+    # --- Optional: open debugger window on startup ---
+    backend.show_debugger()
+
 
     # --- Main periodic update ---
     def update_values():
@@ -235,14 +261,34 @@ if __name__ == "__main__":
         # --- Check button presses ---
         if buttons.is_pressed("next"):
             backend.nextViewRequested.emit()
-            print("[BUTTON] Next view requested")    
-
+            print("[BUTTON] Next view requested")   
+            
         if buttons.is_pressed("extra"):
-            backend.nextOverlayRequested.emit()
-            print("[BUTTON] Next overlay requested")  
+            if backend.currentView == "accel":
+                # Prevent spamming if already calibrating
+                if backend.calibrationState == "calibrating":
+                    print("[INFO] Calibration already in progress")
+                else:
+                    print("[BUTTON] Calibrating MPU6050 accelerometer...")
+                    backend.calibrationState = "calibrating"
+                    
+                    try:
+                        mpu.calibrate_accelerometer()
+                        print("✅ MPU6050 calibration complete")
+                        backend.calibrationState = "done"
+                    except Exception as e:
+                        print(f"❌ MPU6050 calibration failed: {e}")
+                        backend.calibrationState = "failed"
+                    
+                    # Reset to idle after 2 seconds
+                    QTimer.singleShot(2000, lambda: setattr(backend, "calibrationState", "idle"))
+            else:
+                backend.nextOverlayRequested.emit()
+                print("[BUTTON] Next overlay requested")
+                
 
     timer = QTimer()
-    timer.timeout.connect(update_values)
+    #timer.timeout.connect(update_values)
     timer.start(1000)
 
     sys.exit(app.exec())

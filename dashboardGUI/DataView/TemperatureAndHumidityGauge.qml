@@ -16,7 +16,7 @@ Item {
     property bool showHumidity: true
 
     property color dialColor: "white"
-    property color needleColor: "#00AEEF"
+    property color needleColor: dialColor
     property color rimColor: "#444"
 
     // === Internal Constants ===
@@ -137,4 +137,5 @@ Item {
     // Smooth update only when properties change (not constant repaint)
     onTemperatureChanged: canvas.requestPaint()
     onHumidityChanged: canvas.requestPaint()
+    onDialColorChanged: canvas.requestPaint();
 }

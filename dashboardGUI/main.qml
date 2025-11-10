@@ -190,7 +190,7 @@ Window {
         onTriggered: root.isDaytime = !root.isDaytime
     }
 
-    Behavior on dayColor { ColorAnimation { duration: 2000; easing.type: Easing.InOutQuad } }
+    Behavior on dayColor { ColorAnimation { duration: 1000; easing.type: Easing.InOutQuad } }
 
     // ====== FUNCTIONS ======
     function simulateSensorData() {

@@ -2,15 +2,18 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 
 Item {
+    id: accelRoot
     anchors.fill: parent
 
+    // === Input Properties (externally settable from main.qml or backend) ===
     property real ax: 3
     property real ay: 2
     property real maxAcceleration: 5
-    property int contourCount: 4   // number of concentric circles
-    property int tickCount: 4      // number of ticks per axis
-    property int labelOffset: 15   // distance from tick toward center
-     property color textColor: "yellow"
+    property int contourCount: 4
+    property int tickCount: 4
+    property int labelOffset: 15
+    property color textColor: "yellow"
+    property string calibrationState: "idle"
 
     Rectangle {
         anchors.fill: parent
@@ -41,10 +44,10 @@ Item {
         // Main disk
         Rectangle {
             id: disk
-            width: parent.height/2
-            height: parent.height/2
+            width: parent.height / 2
+            height: parent.height / 2
             anchors.centerIn: parent
-            radius: parent.height/6
+            radius: parent.height / 6
             border.color: textColor
             border.width: 2
             color: "transparent"
@@ -66,65 +69,78 @@ Item {
             anchors.verticalCenter: disk.verticalCenter
         }
 
-        // X-axis ticks and labels (skip 0)
+        // X-axis ticks
         Repeater {
             model: tickCount * 2 + 1
             delegate: Item {
                 property real tickValue: (index - tickCount) * maxAcceleration / tickCount
-                visible: tickValue !== 0  // skip the center tick
-
+                visible: tickValue !== 0
                 Rectangle {
-                    width: 2
-                    height: 8
-                    color: "#aaa"
+                    width: 2; height: 8; color: "#aaa"
                     x: disk.x + disk.width/2 + tickValue / maxAcceleration * (disk.width/2) - width/2
                     y: disk.y + disk.height/2 - height/2
                 }
-
                 Text {
                     text: tickValue.toFixed(0)
-                    color: textColor
-                    font.pixelSize: 15
-                    x: disk.x + disk.width/2 + tickValue / maxAcceleration * (disk.width/2) - width/2 + (tickValue > 0 ? -labelOffset : labelOffset)
+                    color: textColor; font.pixelSize: 15
+                    x: disk.x + disk.width/2 + tickValue / maxAcceleration * (disk.width/2) - width/2 +
+                       (tickValue > 0 ? -labelOffset : labelOffset)
                     y: disk.y + disk.height/2 + 10
                 }
             }
         }
 
-        // Y-axis ticks and labels (skip 0)
+        // Y-axis ticks
         Repeater {
             model: tickCount * 2 + 1
             delegate: Item {
                 property real tickValue: (index - tickCount) * maxAcceleration / tickCount
-                visible: tickValue !== 0  // skip the center tick
-
+                visible: tickValue !== 0
                 Rectangle {
-                    width: 8
-                    height: 2
-                    color: "#aaa"
+                    width: 8; height: 2; color: "#aaa"
                     x: disk.x + disk.width/2 - width/2
                     y: disk.y + disk.height/2 - tickValue / maxAcceleration * (disk.height/2) - height/2
                 }
-
                 Text {
                     text: tickValue.toFixed(0)
-                    color: textColor
-                    font.pixelSize: 15
+                    color: textColor; font.pixelSize: 15
                     x: disk.x + disk.width/2 - 30
-                    y: disk.y + disk.height/2 - tickValue / maxAcceleration * (disk.height/2) - height/2 + (tickValue > 0 ? labelOffset : -labelOffset)
+                    y: disk.y + disk.height/2 - tickValue / maxAcceleration * (disk.height/2) - height/2 +
+                       (tickValue > 0 ? labelOffset : -labelOffset)
                 }
             }
         }
 
-        // Acceleration point
+        // Acceleration dot
         Rectangle {
-            width: 16
-            height: 16
-            radius: 5
-            color: "red"
+            width: 16; height: 16; radius: 5; color: "red"
             x: disk.x + disk.width/2 + (ax / maxAcceleration) * (disk.width/2) - width/2
             y: disk.y + disk.height/2 - (ay / maxAcceleration) * (disk.height/2) - height/2
-            layer.enabled: true
+        }
+
+        Rectangle {
+            id: calibrationOverlay
+            anchors.centerIn: parent
+            width: parent.width * 0.6
+            height: 80
+            radius: 10
+            color:  "#66000000"
+            visible: calibrationState !== "idle"
+            z: 10
+
+            Text {
+                anchors.centerIn: parent
+                text: calibrationState === "calibrating" ? "Calibrating..." :
+                      calibrationState === "done" ? "Calibration complete" :
+                      calibrationState === "failed" ? "Calibration failed" : ""
+                color: "orange"
+                font.pixelSize: 32
+                // Just fade in/out the overlay itself
+            }
+
+            Behavior on visible {
+                NumberAnimation { duration: 400; easing.type: Easing.InOutQuad }
+            }
         }
     }
 }

@@ -18,6 +18,7 @@ Window {
     property string currentView: "gps"    // "gps", "clock", "data", "accel"
     property bool isDaytime: backend.isDaytime
     property color dayColor: backend.isDaytime ? "white" : "yellow"
+    property bool showOverlays: true
 
     // ====== VIEWS ======
 
@@ -68,6 +69,7 @@ Window {
         ax: backend.ax
         ay: backend.ay
         textColor: root.dayColor
+        calibrationState: backend.calibrationState
     }
 
     // ====== UI OVERLAYS ======
@@ -77,13 +79,16 @@ Window {
         speed: backend.velocity
         gpsTime: backend.gpsTime
         textColor: root.dayColor
-        visible: root.currentView !== "clock"
+        // Visible only if not in clock view, and in GPS view only if overlays are enabled
+        visible: root.currentView !== "clock" && (root.currentView !== "gps" || root.showOverlays)
     }
 
     BottomBar {
         id: bottomBar
-        visible: root.currentView !== "clock"
+        visible: root.currentView !== "clock" && (root.currentView !== "gps" || root.showOverlays)
     }
+
+    Behavior on dayColor { ColorAnimation { duration: 2000; easing.type: Easing.InOutQuad } }
 
     Connections {
         target: backend
@@ -95,6 +100,18 @@ Window {
             default: root.currentView = "gps"
             }
         console.log("View switched to:", root.currentView)
+        }
+
+        function onNextOverlayRequested() {
+            if (root.currentView === "gps") {
+                root.showOverlays = !root.showOverlays
+                console.log("Overlays toggled:", root.showOverlays)
+            }
+
+            if (root.currentView === "accel") {
+                root.showOverlays = !root.showOverlays
+                console.log("Calibrating MPU6050:", root.showOverlays)
+            }
         }
     }
 }
