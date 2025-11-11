@@ -1,7 +1,11 @@
 from PySide6.QtWidgets import (
-    QApplication, QWidget, QVBoxLayout, QLabel, QDoubleSpinBox,
+    QWidget, QVBoxLayout, QLabel, QDoubleSpinBox,
     QPushButton, QHBoxLayout, QCheckBox, QLineEdit
 )
+from PySide6.QtCore import QObject, Signal, Property, QTimer
+
+
+from src.sensors.MPU6050 import MPU6050 as mpu
 
 class DebuggerWindow(QWidget):
     def __init__(self, backend):
@@ -58,9 +62,49 @@ class DebuggerWindow(QWidget):
 
         # --- Buttons ---
         btn_view = QPushButton("Next View")
-        btn_view.clicked.connect(backend.nextViewRequested.emit)
+        btn_view.clicked.connect(lambda: cycle_view())
+
+        def cycle_view():
+            views = ["gps", "clock", "data", "accel"]
+            try:
+                current_index = views.index(backend.currentView)
+            except ValueError:
+                current_index = 0
+            next_index = (current_index + 1) % len(views)
+            backend.currentView = views[next_index]
+            print("[DEBUGGER] Next view requested ->", backend.currentView)
+
+        # --- Fixed Overlay Toggle ---
         btn_overlay = QPushButton("Toggle Overlay")
-        btn_overlay.clicked.connect(backend.nextOverlayRequested.emit)
+        btn_overlay.clicked.connect(lambda: toggle_overlay())
+
+        # Define the toggle_overlay method inside the class
+        def toggle_overlay():
+            """ Emulates the next overlay toggle behavior from main.py """
+            if backend.currentView == "accel":
+                if backend.calibrationState == "calibrating":
+                    print("[INFO] Calibration already in progress")
+                else:
+                    print("[BUTTON] Calibrating MPU6050 accelerometer...")
+                    backend.calibrationState = "calibrating"
+                    try:
+                        # Perform calibration
+                        mpu.calibrate_accelerometer()
+                        print("✅ MPU6050 calibration complete")
+                        backend.calibrationState = "done"
+                    except Exception as e:
+                        print(f"❌ MPU6050 calibration failed: {e}")
+                        backend.calibrationState = "failed"
+                    
+                    # Reset to idle after 2 seconds
+                    QTimer.singleShot(2000, lambda: setattr(backend, "calibrationState", "idle"))
+            elif backend.currentView == "gps":
+                # Toggle GPS overlay visibility
+                backend.showOverlays = not backend.showOverlays  # Toggle the overlay visibility
+                print("[BUTTON] Toggle GPS overlay")
+            else:
+                print("[BUTTON] No change in this view.")
+
         layout.addWidget(btn_view)
         layout.addWidget(btn_overlay)
 

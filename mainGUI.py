@@ -6,7 +6,6 @@ from PySide6.QtCore import QObject, Signal, Property, QTimer
 from PySide6.QtWidgets import QApplication
 from PySide6.QtQml import QQmlApplicationEngine
 import PyQt6.QtCore
-import concurrent.futures
 
 from src.sensors.DHT11 import DHT11
 from src.sensors.LDRLM393 import LDRLM393
@@ -32,9 +31,10 @@ class DashboardBackend(QObject):
     isDaytimeChanged = Signal()
     dayColorChanged = Signal()
     gpsConnectedChanged = Signal()
-    nextViewRequested = Signal()
     nextOverlayRequested = Signal()
     calibrationStateChanged = Signal()
+    currentViewChanged = Signal()
+    showOverlaysChanged = Signal()
 
     def __init__(self):
         super().__init__()
@@ -52,6 +52,8 @@ class DashboardBackend(QObject):
         self._isDaytime = True
         self._gpsConnected = False
         self._calibrationState = ""
+        self._currentView = "gps"
+        self._showOverlays = True
     
     def show_debugger(self):
         """Open the Debugger popup window."""
@@ -78,6 +80,22 @@ class DashboardBackend(QObject):
         if self._gpsTime != val:
             self._gpsTime = val
             self.gpsTimeChanged.emit()
+
+    @Property(str, notify=currentViewChanged)
+    def currentView(self): return self._currentView
+    @currentView.setter
+    def currentView(self, val):
+        if self._currentView != val:
+            self._currentView = val
+            self.currentViewChanged.emit()
+            
+    @Property(bool, notify=showOverlaysChanged)
+    def showOverlays(self): return self._showOverlays
+    @showOverlays.setter
+    def showOverlays(self, val):
+        if self._showOverlays != val:
+            self._showOverlays = val
+            self.showOverlaysChanged.emit()         
             
     @Property(str, notify=calibrationStateChanged)
     def calibrationState(self):
@@ -260,9 +278,12 @@ if __name__ == "__main__":
 
         # --- Check button presses ---
         if buttons.is_pressed("next"):
-            backend.nextViewRequested.emit()
+            views = ["gps", "clock", "data", "accel"]
+            current_index = views.index(backend.currentView)
+            next_index = (current_index + 1) % len(views)
+            backend.currentView = views[next_index]
             print("[BUTTON] Next view requested")   
-            
+                    
         if buttons.is_pressed("extra"):
             if backend.currentView == "accel":
                 # Prevent spamming if already calibrating
@@ -282,9 +303,12 @@ if __name__ == "__main__":
                     
                     # Reset to idle after 2 seconds
                     QTimer.singleShot(2000, lambda: setattr(backend, "calibrationState", "idle"))
+            elif backend.currentView == "gps":
+                # Toggle GPS overlay visibility
+                backend.showOverlays = not backend.showOverlays  # Toggle the overlay visibility
+                print("[BUTTON] Toggle GPS overlay")
             else:
-                backend.nextOverlayRequested.emit()
-                print("[BUTTON] Next overlay requested")
+                print("[BUTTON] No change in this view.")
                 
 
     timer = QTimer()

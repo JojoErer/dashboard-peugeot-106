@@ -124,22 +124,17 @@ Item {
             width: parent.width * 0.6
             height: 80
             radius: 10
-            color:  "#66000000"
+            color: "#00000000"  // Fully transparent
             visible: calibrationState !== "idle"
             z: 10
 
             Text {
                 anchors.centerIn: parent
                 text: calibrationState === "calibrating" ? "Calibrating..." :
-                      calibrationState === "done" ? "Calibration complete" :
-                      calibrationState === "failed" ? "Calibration failed" : ""
+                    calibrationState === "done" ? "Calibration complete" :
+                    calibrationState === "failed" ? "Calibration failed" : ""
                 color: "orange"
                 font.pixelSize: 32
-                // Just fade in/out the overlay itself
-            }
-
-            Behavior on visible {
-                NumberAnimation { duration: 400; easing.type: Easing.InOutQuad }
             }
         }
     }
