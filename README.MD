@@ -37,6 +37,7 @@ Important aspects to consider:
 - If a standalone .exe is required for the qml interface run: C:\Qt\6.10.0\mingw_64\bin\windeployqt.exe build\dashboardGUI.exe
   (from the location where Qt is installed)
 - This exe is standalone, but does not work on the Raspberry Pi.
+- A Raspberry Pi cannot handle a loss of power well, it is must be shut down every time (by holding one of the buttons) to prevent a corrupt OS.
 
 Future improvements:
 - Read data from the tachnometer and display it in a new view. This, probably, requires a analog to digital converter, but the car provides this signal and if it is a PDM signal, it can be read relatively easily.
