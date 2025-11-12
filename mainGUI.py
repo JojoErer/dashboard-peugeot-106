@@ -54,7 +54,9 @@ class DashboardBackend(QObject):
         self._calibrationState = ""
         self._currentView = "gps"
         self._showOverlays = True
-    
+
+        self.load_settings()
+
     def show_debugger(self):
         """Open the Debugger popup window."""
         if not hasattr(self, "_debugger") or self._debugger is None:
@@ -63,6 +65,61 @@ class DashboardBackend(QObject):
         self._debugger.raise_()
         self._debugger.activateWindow()
 
+    def load_settings(self):
+        """Load settings from a file and apply them."""
+        settings_file = "settings.txt"
+        if os.path.exists(settings_file):
+            with open(settings_file, 'r') as f:
+                lines = f.readlines()
+                if len(lines) >= 2:
+                    self._currentView = lines[0].strip()  # View
+                    self._showOverlays = lines[1].strip().lower() == 'true'  # Overlay state (True/False)
+
+                    self.currentViewChanged.emit()
+                    self.showOverlaysChanged.emit()
+                    print(f"[INFO] Loaded settings: View={self._currentView}, Overlays={self._showOverlays}")
+        else:
+            print("[INFO] No settings file found. Using default settings.")
+
+    def save_settings(self):
+        """Save current settings (view and overlay) to a file."""
+        settings_file = "settings.txt"
+        with open(settings_file, 'w') as f:
+            f.write(f"{self._currentView}\n")
+            f.write(f"{'true' if self._showOverlays else 'false'}\n")
+        print(f"[INFO] Settings saved: View={self._currentView}, Overlays={self._showOverlays}")
+
+    def calibrate_mpu(self):
+        """Trigger MPU6050 calibration."""
+        mpu = MPU6050()
+        mpu.calibrate_accelerometer()
+        self._calibrationState = f"Calibrated: ax={mpu.ax_offset:.2f}, ay={mpu.ay_offset:.2f}, az={mpu.az_offset:.2f}"
+        self.calibrationStateChanged.emit()
+        print(self._calibrationState)
+
+    def load_mpu_calibration(self):
+        """Load MPU6050 calibration data from a file."""
+        mpu = MPU6050()
+        mpu.load_calibration()
+
+    # --- Properties (same as before) ---
+    @Property(str, notify=currentViewChanged)
+    def currentView(self): return self._currentView
+    @currentView.setter
+    def currentView(self, val):
+        if self._currentView != val:
+            self._currentView = val
+            self.currentViewChanged.emit()
+            self.save_settings()
+
+    @Property(bool, notify=showOverlaysChanged)
+    def showOverlays(self): return self._showOverlays
+    @showOverlays.setter
+    def showOverlays(self, val):
+        if self._showOverlays != val:
+            self._showOverlays = val
+            self.showOverlaysChanged.emit()
+            self.save_settings() 
 
     # --- Properties (same as before) ---
     @Property(float, notify=velocityChanged)
@@ -79,23 +136,7 @@ class DashboardBackend(QObject):
     def gpsTime(self, val):
         if self._gpsTime != val:
             self._gpsTime = val
-            self.gpsTimeChanged.emit()
-
-    @Property(str, notify=currentViewChanged)
-    def currentView(self): return self._currentView
-    @currentView.setter
-    def currentView(self, val):
-        if self._currentView != val:
-            self._currentView = val
-            self.currentViewChanged.emit()
-            
-    @Property(bool, notify=showOverlaysChanged)
-    def showOverlays(self): return self._showOverlays
-    @showOverlays.setter
-    def showOverlays(self, val):
-        if self._showOverlays != val:
-            self._showOverlays = val
-            self.showOverlaysChanged.emit()         
+            self.gpsTimeChanged.emit()          
             
     @Property(str, notify=calibrationStateChanged)
     def calibrationState(self):
@@ -254,7 +295,7 @@ if __name__ == "__main__":
             if gps_data["latitude"] and gps_data["longitude"]:
                 backend.centerLat = gps_data["latitude"]
                 backend.centerLon = gps_data["longitude"]
-            backend.velocity = gps_data.get("speed", 0.0)
+            backend.velocity = gps_data.get("speed", 0.0) if gps_data.get("speed", 0.0) >= 3.0 else 0
             backend.gpsTime = gps_data.get("timestamp", "00:00")
 
         # Acceleration

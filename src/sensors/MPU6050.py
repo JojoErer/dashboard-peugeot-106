@@ -1,6 +1,6 @@
-# mpu6050_sensor.py
 import time
 import random
+import os
 
 class MPU6050:
     def __init__(self):
@@ -26,7 +26,8 @@ class MPU6050:
         self.ay_offset = 0.0
         self.az_offset = 0.0
 
-    # ✅ Add this alias for consistency with other sensors
+        self.load_calibration()  # Load calibration data on initialization
+
     def initialize(self):
         """Alias for init_sensor() to match other sensor classes."""
         self.init_sensor()
@@ -73,6 +74,8 @@ class MPU6050:
 
         print(f"[INFO] Calibration complete: ax={self.ax_offset:.2f}, ay={self.ay_offset:.2f}, az={self.az_offset:.2f}")
 
+        self.save_calibration()  # Save the calibration data after calibration
+
     def get_calibrated_acceleration(self):
         """Return calibrated accelerometer readings."""
         ax, ay, az = self.read_accelerometer()
@@ -87,3 +90,26 @@ class MPU6050:
         if value > 32767:
             value -= 65536
         return value
+
+    def save_calibration(self):
+        """Save the calibration data to a file."""
+        calibration_file = "mpu6050_calibration.txt"
+        with open(calibration_file, 'w') as f:
+            f.write(f"{self.ax_offset}\n")
+            f.write(f"{self.ay_offset}\n")
+            f.write(f"{self.az_offset}\n")
+        print(f"[INFO] MPU6050 calibration saved: ax_offset={self.ax_offset}, ay_offset={self.ay_offset}, az_offset={self.az_offset}")
+
+    def load_calibration(self):
+        """Load calibration data from a file."""
+        calibration_file = "mpu6050_calibration.txt"
+        if os.path.exists(calibration_file):
+            with open(calibration_file, 'r') as f:
+                lines = f.readlines()
+                if len(lines) >= 3:
+                    self.ax_offset = float(lines[0].strip())
+                    self.ay_offset = float(lines[1].strip())
+                    self.az_offset = float(lines[2].strip())
+                    print(f"[INFO] Loaded MPU6050 calibration: ax_offset={self.ax_offset}, ay_offset={self.ay_offset}, az_offset={self.az_offset}")
+        else:
+            print("[INFO] No MPU6050 calibration file found. Using default calibration.")

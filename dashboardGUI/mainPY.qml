@@ -17,7 +17,7 @@ Window {
 
     // ====== Global State ======
     property bool isDaytime: backend.isDaytime
-    property color dayColor: backend.isDaytime ? "white" : "yellow"
+    property color dayColor: backend.isDaytime ? "white" : "#FFDF00"
     property bool showOverlays: backend.showOverlays
 
 
@@ -87,6 +87,28 @@ Window {
     BottomBar {
         id: bottomBar
         visible: backend.currentView !== "clock" && (backend.currentView !== "gps" || root.showOverlays)
+    }
+
+    // ====== Shutdown Message Text Box ======
+    Rectangle {
+        id: shutdownBackground
+        color: "black"          // Background color
+        radius: 10              // Optional: rounded corners
+        width: parent.width * 0.6
+        height: 80
+        anchors.centerIn: parent
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.verticalCenterOffset: parent.height / 3 
+        visible: backend.velocity === 0 
+
+        Text {
+            id: shutdownMessage
+            text: "Hold button to shutdown"
+            color: "red"
+            font.bold: true
+            font.pointSize: 24
+            anchors.centerIn: parent
+        }
     }
 
     Behavior on dayColor { ColorAnimation { duration: 2000; easing.type: Easing.InOutQuad } }
