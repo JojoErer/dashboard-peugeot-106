@@ -26,7 +26,7 @@ class MPU6050:
         self.ay_offset = 0.0
         self.az_offset = 0.0
 
-        self.load_calibration()  # Load calibration data on initialization
+        self.load_calibration()
 
     def initialize(self):
         """Alias for init_sensor() to match other sensor classes."""

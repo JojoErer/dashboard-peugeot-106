@@ -21,23 +21,23 @@ class VK162GPS:
             possible_ports = glob.glob('/dev/ttyUSB*')
             if possible_ports:
                 self.port = possible_ports[0]
-                print(f"✅ Found VK-162 GPS on {self.port}")
+                print(f"[INFO] Found VK-162 GPS on {self.port}")
             else:
-                print("⚠️ No GPS device found. Switching to test mode.")
+                print("[INFO] No GPS device found. Switching to test mode.")
                 self.test_mode = True
 
         if not self.test_mode and self.port:
             try:
                 self.ser = serial.Serial(self.port, self.baudrate, timeout=1)
-                print(f"📡 Connected to GPS on {self.port} ({self.baudrate} baud)")
+                print(f"[INFO] Connected to GPS on {self.port} ({self.baudrate} baud)")
             except Exception as e:
-                print(f"❌ Could not open {self.port}: {e}")
+                print(f"[INFO] Could not open {self.port}: {e}")
                 self.test_mode = True
 
     def initialize(self):
         """Check if GPS is working, or fallback to test mode."""
         if self.test_mode:
-            print("🧪 Running in GPS test mode (simulated data).")
+            print("[INFO] Running in GPS test mode (simulated data).")
             return True
 
         print("Initializing GPS (waiting for valid NMEA sentences)...")
@@ -47,10 +47,10 @@ class VK162GPS:
                 if nmea_sentence and ('$GPGGA' in nmea_sentence or '$GPRMC' in nmea_sentence):
                     gps_data = self.parse_nmea_sentence(nmea_sentence)
                     if gps_data['latitude'] and gps_data['longitude']:
-                        print("✅ VK-162 GPS initialized successfully.")
+                        print("[INFO] VK-162 GPS initialized successfully.")
                         return True
                 time.sleep(1)
-            print("❌ No valid GPS data received. Switching to test mode.")
+            print("[INFO] No valid GPS data received. Switching to test mode.")
             self.test_mode = True
             return True
         except Exception as e:
@@ -166,4 +166,4 @@ class VK162GPS:
     def close(self):
         if self.ser:
             self.ser.close()
-            print("🔌 GPS connection closed.")
+            print("[INFO] GPS connection closed.")

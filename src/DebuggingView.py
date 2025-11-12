@@ -56,7 +56,6 @@ class DebuggerWindow(QWidget):
         add_check("Daytime", lambda: backend.isDaytime, lambda v: setattr(backend, "isDaytime", v))
         
         # --- Initialize accelerometer for calibration check ---
-        
         mpu = MPU6050()
         mpu.initialize()
 
@@ -91,17 +90,16 @@ class DebuggerWindow(QWidget):
     
                     try:
                         mpu.calibrate_accelerometer()
-                        print("✅ MPU6050 calibration complete")
+                        print("[INFO] MPU6050 calibration complete")
                         backend.calibrationState = "done"
                     except Exception as e:
-                        print(f"❌ MPU6050 calibration failed: {e}")
+                        print(f"[INFO] MPU6050 calibration failed: {e}")
                         backend.calibrationState = "failed"
                     
                     # Reset to idle after 2 seconds
                     QTimer.singleShot(2000, lambda: setattr(backend, "calibrationState", "idle"))
             elif backend.currentView == "gps":
-                # Toggle GPS overlay visibility
-                backend.showOverlays = not backend.showOverlays  # Toggle the overlay visibility
+                backend.showOverlays = not backend.showOverlays
                 print("[BUTTON] Toggle GPS overlay")
             else:
                 print("[BUTTON] No change in this view.")

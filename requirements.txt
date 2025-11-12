@@ -3,10 +3,6 @@ Pillow
 numpy       
 matplotlib    
 
-# Light sensor (LDR / LM393)
-# Replace with actual package if installed from PyPI
-# e.g., some custom library for your LDR
-
 # GUI
 PySide6
 pygame
@@ -19,7 +15,7 @@ PyQt6
 setuptools
 gpiozero
 
-# Sensors & hardware (adjust if using test mode)
+# Sensors & hardware
 RPLCD
 RPi.GPIO 
 adafruit-DHT   

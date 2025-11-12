@@ -52,7 +52,7 @@ class ButtonHandler:
                 return True
         else:
             # Simulation mode: randomly trigger buttons every few cycles
-            if random.random() < 0.5:
+            if random.random() < 0.3:
                 self.last_press_time[name] = now
                 self.press_start_time[name] = now  # Mark the start of the press
                 print("[SIM] button pressed")
@@ -67,8 +67,8 @@ class ButtonHandler:
                 now = time.time()
                 if now - self.press_start_time[name] >= self.shutdown_threshold:
                     print(f"[INFO] {name.capitalize()} button held for 3 seconds. Shutting down...")
-                    self.cleanup()  # Cleanup GPIO before shutdown
-                    os.system("sudo shutdown now")  # Shutdown Raspberry Pi
+                    self.cleanup()
+                    os.system("sudo shutdown now")
                     return True
         return False
 

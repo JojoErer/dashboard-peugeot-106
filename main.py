@@ -13,8 +13,8 @@ from src.sensors.VK162GPS import VK162GPS
 from src.sensors.MPU6050 import MPU6050
 from src.sensors.ButtonHandler import ButtonHandler
 from src.DebuggingView import DebuggerWindow
-
-class DashboardBackend(QObject):
+  
+class DashboardBackend(QObject):       
     # --- Signals for QML updates ---
     velocityChanged = Signal()
     gpsTimeChanged = Signal()
@@ -228,6 +228,7 @@ class DashboardBackend(QObject):
 # ============================================================
 
 if __name__ == "__main__":
+    
     app = QApplication(sys.argv)
     engine = QQmlApplicationEngine()
     backend = DashboardBackend()
@@ -256,7 +257,6 @@ if __name__ == "__main__":
     # --- Optional: open debugger window on startup ---
     backend.show_debugger()
 
-
     # --- Main periodic update ---
     def update_values():
         # Temp & humidity
@@ -270,7 +270,7 @@ if __name__ == "__main__":
         # Light
         light1 = light_sensor.read_light_intensity(light_sensor.pin1)
         light2 = light_sensor.read_light_intensity(light_sensor.pin2)
-        backend.isDaytime = ((light1 + light2) / 2.0) >= 0.5
+        backend.isDaytime = light1 > 0 or light2 > 0
 
         # GPS
         gps_data = gps_reader.get_data()
@@ -282,7 +282,7 @@ if __name__ == "__main__":
             backend.gpsTime = gps_data.get("timestamp", "00:00")
 
         # Acceleration
-        ax, ay, az = mpu.read_accelerometer()
+        ax, ay, _ = mpu.read_accelerometer()
         backend.ax = ax
         backend.ay = ay
 
@@ -319,10 +319,10 @@ if __name__ == "__main__":
                     
                     try:
                         mpu.calibrate_accelerometer()
-                        print("✅ MPU6050 calibration complete")
+                        print("[INFO] MPU6050 calibration complete")
                         backend.calibrationState = "done"
                     except Exception as e:
-                        print(f"❌ MPU6050 calibration failed: {e}")
+                        print(f"[INFO] MPU6050 calibration failed: {e}")
                         backend.calibrationState = "failed"
                     
                     # Reset to idle after 2 seconds
