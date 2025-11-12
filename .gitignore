@@ -4,5 +4,5 @@
 *.mtl
 **/.venv/
 **/lib/mapNL/
-**/dashboardGUI/build/
-**/dashboardGUI/.qtcreator
+**/src/dashboardGUI/build/
+**/src/dashboardGUI/.qtcreator

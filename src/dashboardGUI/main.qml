@@ -89,7 +89,6 @@ Window {
         visible: backend.currentView !== "clock" && (backend.currentView !== "gps" || root.showOverlays)
     }
 
-    // ====== Shutdown Message Text Box ======
     Rectangle {
         id: shutdownBackground
         color: "black"          // Background color
@@ -100,6 +99,10 @@ Window {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.verticalCenterOffset: parent.height / 3 
         visible: backend.velocity === 0 
+
+        // Add border
+        border.color: "silver"
+        border.width: 2          // Small border
 
         Text {
             id: shutdownMessage

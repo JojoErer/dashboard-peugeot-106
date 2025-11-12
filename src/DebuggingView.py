@@ -2,10 +2,9 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QDoubleSpinBox,
     QPushButton, QHBoxLayout, QCheckBox, QLineEdit
 )
-from PySide6.QtCore import QObject, Signal, Property, QTimer
+from PySide6.QtCore import QTimer
 
-
-from src.sensors.MPU6050 import MPU6050 as mpu
+from src.sensors.MPU6050 import MPU6050
 
 class DebuggerWindow(QWidget):
     def __init__(self, backend):
@@ -16,7 +15,6 @@ class DebuggerWindow(QWidget):
 
         layout = QVBoxLayout()
 
-        # Helper: spinbox creator
         def add_spin(label, minv, maxv, step, prop_get, prop_set):
             row = QHBoxLayout()
             row.addWidget(QLabel(label))
@@ -28,7 +26,6 @@ class DebuggerWindow(QWidget):
             row.addWidget(spin)
             layout.addLayout(row)
 
-        # Helper: text field creator
         def add_text(label, prop_get, prop_set):
             row = QHBoxLayout()
             row.addWidget(QLabel(label))
@@ -38,7 +35,6 @@ class DebuggerWindow(QWidget):
             row.addWidget(field)
             layout.addLayout(row)
 
-        # Helper: checkbox creator
         def add_check(label, prop_get, prop_set):
             box = QCheckBox(label)
             box.setChecked(prop_get())
@@ -58,7 +54,11 @@ class DebuggerWindow(QWidget):
         add_spin("Accel X:", -5, 5, 0.01, lambda: backend.ax, lambda v: setattr(backend, "ax", v))
         add_spin("Accel Y:", -5, 5, 0.01, lambda: backend.ay, lambda v: setattr(backend, "ay", v))
         add_check("Daytime", lambda: backend.isDaytime, lambda v: setattr(backend, "isDaytime", v))
-        add_check("GPS Connected", lambda: backend.gpsConnected, lambda v: setattr(backend, "gpsConnected", v))
+        
+        # --- Initialize accelerometer for calibration check ---
+        
+        mpu = MPU6050()
+        mpu.initialize()
 
         # --- Buttons ---
         btn_view = QPushButton("Next View")
@@ -82,13 +82,14 @@ class DebuggerWindow(QWidget):
         def toggle_overlay():
             """ Emulates the next overlay toggle behavior from main.py """
             if backend.currentView == "accel":
+                # Prevent spamming if already calibrating
                 if backend.calibrationState == "calibrating":
                     print("[INFO] Calibration already in progress")
                 else:
                     print("[BUTTON] Calibrating MPU6050 accelerometer...")
                     backend.calibrationState = "calibrating"
+    
                     try:
-                        # Perform calibration
                         mpu.calibrate_accelerometer()
                         print("✅ MPU6050 calibration complete")
                         backend.calibrationState = "done"
