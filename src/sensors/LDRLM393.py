@@ -14,12 +14,15 @@ class LDRLM393:
         """
         self.pin1 = pin1
         self.pin2 = pin2
+        self.test_mode = False
 
         if RPI_AVAILABLE:
             GPIO.setmode(GPIO.BCM)
             GPIO.setup(self.pin1, GPIO.IN)
             GPIO.setup(self.pin2, GPIO.IN)
-
+        else:
+            self.test_mode = True
+            
     def read_light_intensity(self, pin):
         """
         Reads light intensity (0 or 1) from a given pin.

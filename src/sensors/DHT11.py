@@ -28,6 +28,7 @@ class DHT11:
         self.car_pin = car_pin
         self.vent_pin = vent_pin
         self.sensors = {}
+        self.test_mode = False
 
         if ADAFRUIT_AVAILABLE:
             if car_pin is not None:
@@ -41,6 +42,8 @@ class DHT11:
         else:
             self.sensors['car'] = None
             self.sensors['vent'] = None
+            self.test_mode = True
+
 
         # For simulation
         self._fake_car_temp = 22.0

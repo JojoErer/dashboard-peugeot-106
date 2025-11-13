@@ -245,6 +245,7 @@ if __name__ == "__main__":
     engine = QQmlApplicationEngine()
     backend = DashboardBackend()
     engine.rootContext().setContextProperty("backend", backend)
+    debugOn = True
 
     qml_file = os.path.join(os.path.dirname(__file__), "src/dashboardGUI/main.qml")
     engine.load(qml_file)
@@ -313,23 +314,22 @@ if __name__ == "__main__":
     # --- Build display message ---
     if init_errors:
         backend.sensorStatusMessage = (
-            "⚠ Errors during initialization:\n"
+            "Errors during initialization:\n"
             + "\n".join(init_errors)
             + "\n\nDetected devices:\n"
             + "\n".join(init_status)
         )
     else:
         backend.sensorStatusMessage = (
-            "✅ All systems initialized successfully\n"
+            "All systems initialized successfully\n"
             + "\n".join(init_status)
         )
 
     print(backend.sensorStatusMessage)
-
-
-
+    
     # --- Optional: open debugger window on startup ---
-    # backend.show_debugger()
+    if debugOn:
+        backend.show_debugger()
 
     # --- Main periodic update ---
     def update_values():
@@ -410,7 +410,8 @@ if __name__ == "__main__":
                 
 
     timer = QTimer()
-    timer.timeout.connect(update_values)
+    if not debugOn:
+        timer.timeout.connect(update_values)
     timer.start(1000)
 
     sys.exit(app.exec())

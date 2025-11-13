@@ -14,6 +14,7 @@ Window {
     height: 800
     visible: true
     title: qsTr("Dashboard")
+    flags: Qt.FramelessWindowHint
 
     // ====== Global State ======
     property bool isDaytime: backend.isDaytime
@@ -105,14 +106,14 @@ Window {
         height: statusText.paintedHeight + padding * 2
 
         anchors.centerIn: parent
-        anchors.verticalCenterOffset: parent.height / 3
+        anchors.verticalCenterOffset: parent.height / 4
 
         visible: backend.velocity === 0
 
         Text {
             id: statusText
             anchors.centerIn: parent
-            color: backend.sensorStatusMessage.startsWith("✅") ? "lime" : "red"
+            color: backend.sensorStatusMessage.startsWith("All") ? "lime" : "red"
             font.bold: true
             font.pointSize: 16
             horizontalAlignment: Text.AlignHCenter

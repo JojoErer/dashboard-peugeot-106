@@ -8,12 +8,14 @@ class MPU6050:
         self.SMBUS_AVAILABLE = False
         self.MPU_CONNECTED = False
         self.bus = None
+        self.test_mode = False
 
         try:
             import smbus2
             self.bus = smbus2.SMBus(1)
             self.SMBUS_AVAILABLE = True
         except (ImportError, FileNotFoundError):
+            self.test_mode = True
             print("[INFO] smbus not found. Running in simulation mode.")
 
         # MPU6050 register addresses

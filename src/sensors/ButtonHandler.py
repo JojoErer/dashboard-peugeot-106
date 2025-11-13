@@ -14,6 +14,7 @@ class ButtonHandler:
         self.pins = {"next": pin_next, "extra": pin_extra}
         self.GPIO_AVAILABLE = False
         self.simulated_state = {"next": False, "extra": False}
+        self.test_mode: bool = False
 
         try:
             import RPi.GPIO as GPIO
@@ -27,6 +28,7 @@ class ButtonHandler:
             self.GPIO_AVAILABLE = True
             print(f"[INFO] Buttons initialized on GPIO {pin_next} (next), {pin_extra} (extra)")
         except (ImportError, RuntimeError):
+            self.test_mode = True
             print("[INFO] RPi.GPIO not found. Running in simulation mode.")
 
         # Debounce and long-press tracking
