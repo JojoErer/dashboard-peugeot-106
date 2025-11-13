@@ -33,6 +33,7 @@ class DashboardBackend(QObject):
     calibrationStateChanged = Signal()
     currentViewChanged = Signal()
     showOverlaysChanged = Signal()
+    sensorStatusMessageChanged = Signal()
 
     def __init__(self):
         super().__init__()
@@ -52,6 +53,7 @@ class DashboardBackend(QObject):
         self._calibrationState = ""
         self._currentView = "gps"
         self._showOverlays = True
+        self._sensorStatusMessage = "Initializing sensors..."
 
         self.load_settings()
 
@@ -99,6 +101,16 @@ class DashboardBackend(QObject):
         """Load MPU6050 calibration data from a file."""
         mpu = MPU6050()
         mpu.load_calibration()
+
+    @Property(str, notify=sensorStatusMessageChanged)
+    def sensorStatusMessage(self):
+        return self._sensorStatusMessage
+
+    @sensorStatusMessage.setter
+    def sensorStatusMessage(self, val):
+        if self._sensorStatusMessage != val:
+            self._sensorStatusMessage = val
+            self.sensorStatusMessageChanged.emit()
 
     @Property(str, notify=currentViewChanged)
     def currentView(self): return self._currentView
@@ -240,22 +252,84 @@ if __name__ == "__main__":
         sys.exit(-1)
 
     # --- Initialize sensors ---
-    print("🔧 Initializing sensors...")
-    dht = DHT11(car_pin=4, vent_pin=17)
-    light_sensor = LDRLM393(pin1=22, pin2=10)
-    light_sensor.initialize()
+    print("Initializing sensors...")
+    init_errors = []
+    init_status = []
 
-    gps_reader = VK162GPS()
-    gps_reader.initialize()
-    backend.gpsConnected = not gps_reader.test_mode
+    # --- DHT11 ---
+    try:
+        dht = DHT11(car_pin=4, vent_pin=17)
+        if hasattr(dht, "test_mode") and dht.test_mode:
+            init_status.append("DHT11: simulated")
+        else:
+            init_status.append("DHT11: real")
+    except Exception as e:
+        init_errors.append(f"DHT11: {e}")
 
-    mpu = MPU6050()
-    mpu.initialize()
+    # --- LDR Light Sensor ---
+    try:
+        light_sensor = LDRLM393(pin1=22, pin2=10)
+        light_sensor.initialize()
+        if hasattr(light_sensor, "test_mode") and light_sensor.test_mode:
+            init_status.append("LDR: simulated")
+        else:
+            init_status.append("LDR: real")
+    except Exception as e:
+        init_errors.append(f"LDR: {e}")
 
-    buttons = ButtonHandler(pin_next=18, pin_extra=23)
-    
+    # --- GPS ---
+    try:
+        gps_reader = VK162GPS()
+        gps_reader.initialize()
+        backend.gpsConnected = not gps_reader.test_mode
+        if hasattr(gps_reader, "test_mode") and gps_reader.test_mode:
+            init_status.append("GPS: simulated")
+        else:
+            init_status.append("GPS: real")
+    except Exception as e:
+        init_errors.append(f"GPS: {e}")
+
+    # --- MPU6050 (Accelerometer) ---
+    try:
+        mpu = MPU6050()
+        mpu.initialize()
+        if hasattr(mpu, "test_mode") and mpu.test_mode:
+            init_status.append("MPU6050: simulated")
+        else:
+            init_status.append("MPU6050: real")
+    except Exception as e:
+        init_errors.append(f"MPU6050: {e}")
+
+    # --- Buttons ---
+    try:
+        buttons = ButtonHandler(pin_next=18, pin_extra=23)
+        if hasattr(buttons, "test_mode") and buttons.test_mode:
+            init_status.append("Buttons: simulated")
+        else:
+            init_status.append("Buttons: real")
+    except Exception as e:
+        init_errors.append(f"Buttons: {e}")
+
+    # --- Build display message ---
+    if init_errors:
+        backend.sensorStatusMessage = (
+            "⚠ Errors during initialization:\n"
+            + "\n".join(init_errors)
+            + "\n\nDetected devices:\n"
+            + "\n".join(init_status)
+        )
+    else:
+        backend.sensorStatusMessage = (
+            "✅ All systems initialized successfully\n"
+            + "\n".join(init_status)
+        )
+
+    print(backend.sensorStatusMessage)
+
+
+
     # --- Optional: open debugger window on startup ---
-    backend.show_debugger()
+    # backend.show_debugger()
 
     # --- Main periodic update ---
     def update_values():
@@ -336,7 +410,7 @@ if __name__ == "__main__":
                 
 
     timer = QTimer()
-    # timer.timeout.connect(update_values)
+    timer.timeout.connect(update_values)
     timer.start(1000)
 
     sys.exit(app.exec())

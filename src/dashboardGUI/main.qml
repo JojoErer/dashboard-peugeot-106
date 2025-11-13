@@ -89,28 +89,48 @@ Window {
         visible: backend.currentView !== "clock" && (backend.currentView !== "gps" || root.showOverlays)
     }
 
+    // ====== SYSTEM STATUS / SHUTDOWN MESSAGE ======
     Rectangle {
         id: shutdownBackground
-        color: "black"          // Background color
-        radius: 10              // Optional: rounded corners
-        width: 350
-        height: 40
-        anchors.centerIn: parent
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.verticalCenterOffset: parent.height / 2.8
-        visible: backend.velocity === 0 
-
-        // Add border
+        color: "black"
+        radius: 10
         border.color: "silver"
-        border.width: 2          // Small border
+        border.width: 2
+
+        // Padding around the text
+        property int padding: 16
+
+        // Dynamic sizing based on text content
+        width: Math.min(parent.width * 0.9, statusText.paintedWidth + padding * 2)
+        height: statusText.paintedHeight + padding * 2
+
+        anchors.centerIn: parent
+        anchors.verticalCenterOffset: parent.height / 3
+
+        visible: backend.velocity === 0
 
         Text {
-            id: shutdownMessage
-            text: "Hold button to shutdown"
-            color: "red"
-            font.bold: true
-            font.pointSize: 20
+            id: statusText
             anchors.centerIn: parent
+            color: backend.sensorStatusMessage.startsWith("✅") ? "lime" : "red"
+            font.bold: true
+            font.pointSize: 16
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+            wrapMode: Text.WordWrap
+            width: shutdownBackground.width - shutdownBackground.padding * 2
+            text: backend.sensorStatusMessage
+        }
+
+        Timer {
+            id: startupTimer
+            interval: 10000   // 10 seconds
+            running: true
+            repeat: false
+            onTriggered: {
+                statusText.text = "Hold button to shutdown"
+                statusText.color = "red"
+            }
         }
     }
 
@@ -121,7 +141,6 @@ Window {
         color: "black"
         visible: true
         opacity: 1.0
-        z: 999
 
         Image {
             id: loadingImage
