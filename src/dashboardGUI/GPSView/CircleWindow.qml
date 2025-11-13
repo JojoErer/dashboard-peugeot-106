@@ -84,7 +84,7 @@ Item {
                         var px = tx * tileSize - minX
                         var py = ty * tileSize - minY
 
-                        var filePath = "file:///C:/Users/jorer/OneDrive/Documenten/test/mapNL/" +
+                        var filePath = "../lib/mapNL/" +
                                        root.zoom + "/" + tx + "/" + ty + ".png"
 
                         var img = Qt.createQmlObject('import QtQuick 2.15; Image {}', canvas)
