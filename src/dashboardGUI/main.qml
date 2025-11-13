@@ -93,11 +93,11 @@ Window {
         id: shutdownBackground
         color: "black"          // Background color
         radius: 10              // Optional: rounded corners
-        width: parent.width * 0.6
-        height: 80
+        width: 350
+        height: 40
         anchors.centerIn: parent
         anchors.horizontalCenter: parent.horizontalCenter
-        anchors.verticalCenterOffset: parent.height / 3 
+        anchors.verticalCenterOffset: parent.height / 2.8
         visible: backend.velocity === 0 
 
         // Add border
@@ -109,8 +109,36 @@ Window {
             text: "Hold button to shutdown"
             color: "red"
             font.bold: true
-            font.pointSize: 24
+            font.pointSize: 20
             anchors.centerIn: parent
+        }
+    }
+
+    // ====== LOADING SCREEN ======
+    Rectangle {
+        id: loadingOverlay
+        anchors.fill: parent
+        color: "black"
+        visible: true
+        opacity: 1.0
+        z: 999
+
+        Image {
+            id: loadingImage
+            source: "../dashboardGUI/lib/peugeot106emblem/PeugeotSilverLogo.png"
+            anchors.centerIn: parent
+            width: 400
+            height: 400
+            fillMode: Image.PreserveAspectFit
+        }
+
+        // Fade-out animation after 2 seconds
+        SequentialAnimation on opacity {
+            running: true
+            PropertyAnimation { duration: 2000; to: 1.0 } // show for 2 seconds
+            PauseAnimation { duration: 2000 } // stay visible for 2 seconds
+            PropertyAnimation { duration: 1000; to: 0.0; easing.type: Easing.InOutQuad } // fade out
+            onStopped: loadingOverlay.visible = false
         }
     }
 

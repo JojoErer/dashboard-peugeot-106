@@ -31,6 +31,72 @@ Other required components are:
 - 5 V power source (provided via usb in the sigarrete plug).
 - push buttons
 
+
+The Raspberry pi can be configured to run the main.py on startup. For first installation, run setup.py as usual, after that works. Apply the following steps:
+
+  sudo nano /etc/systemd/system/dashboard.service
+
+Add:
+
+  [Unit]
+  Description=Dashboard GUI
+  After=network.target graphical.target
+
+  [Service]
+  # Adjust to your Python interpreter path:
+  ExecStart=/usr/bin/python3 /home/pi/your_project_folder/main.py
+  WorkingDirectory=/home/pi/your_project_folder
+  Restart=always
+  User=pi
+  Environment=DISPLAY=:0
+  Environment=XAUTHORITY=/home/pi/.Xauthority
+  Environment=QT_QPA_PLATFORM=xcb
+
+  [Install]
+  WantedBy=graphical.target
+
+
+Enable the service:
+
+  sudo systemctl daemon-reload
+  sudo systemctl enable dashboard.service
+  sudo systemctl start dashboard.service
+
+For a check of the status:
+
+  sudo systemctl status dashboard.service
+
+Reboot the Raspberry Pi:
+
+  sudo reboot
+
+It is also nice to add a different boot image, this can be done by:
+
+
+  sudo apt install plymouth plymouth-themes
+
+Enter the location of your image:
+
+  sudo cp /home/pi/your_project_folder/logo.png /usr/share/plymouth/themes/pix/splash.png
+
+Enable the image:
+
+  sudo nano /boot/config.txt
+
+Check if the following line is present:
+
+  disable_splash=0
+
+Open:
+
+  sudo nano /boot/cmdline.txt
+
+Add the following line at the end:
+
+  console=serial0,115200 console=tty1 root=PARTUUID=... rootwait quiet splash
+
+And reboot the Raspberry Pi. Now the Pi should have a custom startup image and boot into the dashboard application.
+
 Important aspects to consider:
 - The import of PyQt6 in the main.py cannot be removed, it is required to find missing .dll files.
 - Ensure that the .venv is activated before running the program.
