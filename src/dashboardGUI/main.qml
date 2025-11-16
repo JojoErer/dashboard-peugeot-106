@@ -8,13 +8,12 @@ import "ClockView"
 import "DataView"
 import "AccelerationView"
 
-Window {
+ApplicationWindow {
     id: root
-    width: 800
-    height: 800
     visible: true
-    title: qsTr("Dashboard")
-    flags: Qt.FramelessWindowHint
+    visibility: Window.FullScreen
+    width: Screen.width
+    height: Screen.height
 
     // ====== Global State ======
     property bool isDaytime: backend.isDaytime
@@ -129,7 +128,7 @@ Window {
             running: true
             repeat: false
             onTriggered: {
-                statusText.text = "Hold button to shutdown"
+                statusText.text = "Hold button in clock view to shutdown"
                 statusText.color = "red"
             }
         }

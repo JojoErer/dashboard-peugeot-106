@@ -97,6 +97,10 @@ Add the following line at the end:
 
 And reboot the Raspberry Pi. Now the Pi should have a custom startup image and boot into the dashboard application.
 
+
+quiet splash logo.nologo
+
+
 Important aspects to consider:
 - The import of PyQt6 in the main.py cannot be removed, it is required to find missing .dll files.
 - Ensure that the .venv is activated before running the program.
@@ -104,6 +108,7 @@ Important aspects to consider:
   (from the location where Qt is installed)
 - This exe is standalone, but does not work on the Raspberry Pi.
 - A Raspberry Pi cannot handle a loss of power well, it is must be shut down every time (by holding one of the buttons) to prevent a corrupt OS.
+- Install fonds: sudo apt install ttf-mscorefonts-installer
 
 Future improvements:
 - Read data from the tachnometer and display it in a new view. This, probably, requires a analog to digital converter, but the car provides this signal and if it is a PDM signal, it can be read relatively easily.

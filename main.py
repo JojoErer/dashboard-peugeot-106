@@ -404,7 +404,10 @@ if __name__ == "__main__":
             elif backend.currentView == "gps":
                 # Toggle GPS overlay visibility
                 backend.showOverlays = not backend.showOverlays
-                print("[BUTTON] Toggle GPS overlay")
+                print("[BUTTON] Toggle GPS overlay")          
+            elif backend.currentView == "clock":
+                print(f"[INFO] Shutting down...")
+                os.system("sudo shutdown now")
             else:
                 print("[BUTTON] No change in this view.")
                 
@@ -412,6 +415,6 @@ if __name__ == "__main__":
     timer = QTimer()
     if not debugOn:
         timer.timeout.connect(update_values)
-    timer.start(1000)
+    timer.start(500)
 
     sys.exit(app.exec())
