@@ -1,5 +1,4 @@
 *.pyc
-*.blend
 *.obj
 *.mtl
 **/.venv/
