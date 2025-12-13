@@ -259,7 +259,7 @@ if __name__ == "__main__":
 
     # --- DHT11 ---
     try:
-        dht = DHT11(car_pin=4, vent_pin=17)
+        dht = DHT11(car_pin=4, vent_pin=27)
         if hasattr(dht, "test_mode") and dht.test_mode:
             init_status.append("DHT11: simulated")
         else:
@@ -303,7 +303,7 @@ if __name__ == "__main__":
 
     # --- Buttons ---
     try:
-        buttons = ButtonHandler(pin_next=18, pin_extra=23)
+        buttons = ButtonHandler(pin_next=5, pin_extra=6)
         if hasattr(buttons, "test_mode") and buttons.test_mode:
             init_status.append("Buttons: simulated")
         else:
