@@ -16,7 +16,7 @@ ApplicationWindow {
     height: Screen.height
 
     // ====== ARBITRARY ROTATION (degrees) ======
-    property real uiRotation: 37.0
+    property real uiRotation: 142
 
     // ====== Global State ======
     property bool isDaytime: backend.isDaytime
