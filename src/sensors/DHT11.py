@@ -57,7 +57,7 @@ class DHT11:
 
         if ADAFRUIT_AVAILABLE and self.sensors[sensor_name]:
             try:
-                temperature = self.sensors[sensor_name].temperature
+                temperature = self.sensors[sensor_name].temperature - 2.0 # Value is slightly too high.
                 humidity = self.sensors[sensor_name].humidity
                 if temperature is not None and humidity is not None:
                     return temperature, humidity
