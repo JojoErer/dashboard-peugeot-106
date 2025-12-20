@@ -356,7 +356,7 @@ if __name__ == "__main__":
             backend.gpsTime = gps_data.get("timestamp", "00:00")
 
         # Acceleration
-        ax, ay, _ = mpu.read_accelerometer()
+        ax, ay, _ = mpu.get_calibrated_acceleration()
         backend.ax = ax
         backend.ay = ay
 

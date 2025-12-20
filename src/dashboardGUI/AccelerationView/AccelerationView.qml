@@ -8,9 +8,10 @@ Item {
     // === Input Properties (externally settable from main.qml or backend) ===
     property real ax: 3
     property real ay: 2
-    property real maxAcceleration: 5
+    property real maxAcceleration: 1.5
     property int contourCount: 4
     property int tickCount: 4
+    property int tickDecimals: 1
     property int labelOffset: 15
     property color textColor: "yellow"
     property string calibrationState: "idle"
@@ -73,18 +74,27 @@ Item {
         Repeater {
             model: tickCount * 2 + 1
             delegate: Item {
-                property real tickValue: (index - tickCount) * maxAcceleration / tickCount
-                visible: tickValue !== 0
+                property real tickValue:
+                    (index - tickCount) * maxAcceleration / tickCount
+
+                visible: Math.abs(tickValue) > 1e-6   // hide 0 cleanly
+
                 Rectangle {
                     width: 2; height: 8; color: "#aaa"
-                    x: disk.x + disk.width/2 + tickValue / maxAcceleration * (disk.width/2) - width/2
+                    x: disk.x + disk.width/2
+                    + tickValue / maxAcceleration * (disk.width/2)
+                    - width/2
                     y: disk.y + disk.height/2 - height/2
                 }
+
                 Text {
-                    text: tickValue.toFixed(0)
-                    color: textColor; font.pixelSize: 15
-                    x: disk.x + disk.width/2 + tickValue / maxAcceleration * (disk.width/2) - width/2 +
-                       (tickValue > 0 ? -labelOffset : labelOffset)
+                    text: tickValue.toFixed(tickDecimals)
+                    color: textColor
+                    font.pixelSize: 15
+                    x: disk.x + disk.width/2
+                    + tickValue / maxAcceleration * (disk.width/2)
+                    - width/2
+                    + (tickValue > 0 ? -labelOffset : labelOffset)
                     y: disk.y + disk.height/2 + 10
                 }
             }
@@ -94,19 +104,28 @@ Item {
         Repeater {
             model: tickCount * 2 + 1
             delegate: Item {
-                property real tickValue: (index - tickCount) * maxAcceleration / tickCount
-                visible: tickValue !== 0
+                property real tickValue:
+                    (index - tickCount) * maxAcceleration / tickCount
+
+                visible: Math.abs(tickValue) > 1e-6
+
                 Rectangle {
                     width: 8; height: 2; color: "#aaa"
                     x: disk.x + disk.width/2 - width/2
-                    y: disk.y + disk.height/2 - tickValue / maxAcceleration * (disk.height/2) - height/2
+                    y: disk.y + disk.height/2
+                    - tickValue / maxAcceleration * (disk.height/2)
+                    - height/2
                 }
+
                 Text {
-                    text: tickValue.toFixed(0)
-                    color: textColor; font.pixelSize: 15
+                    text: tickValue.toFixed(tickDecimals)
+                    color: textColor
+                    font.pixelSize: 15
                     x: disk.x + disk.width/2 - 30
-                    y: disk.y + disk.height/2 - tickValue / maxAcceleration * (disk.height/2) - height/2 +
-                       (tickValue > 0 ? labelOffset : -labelOffset)
+                    y: disk.y + disk.height/2
+                    - tickValue / maxAcceleration * (disk.height/2)
+                    - height/2
+                    + (tickValue > 0 ? labelOffset : -labelOffset)
                 }
             }
         }
