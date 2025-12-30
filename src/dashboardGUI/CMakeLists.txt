@@ -28,12 +28,12 @@ qt_add_qml_module(apptest
     QML_FILES GPSView/CircleWindow.qml
     RESOURCES lib/peugeot106emblem/PeugeotBlackLogo.png lib/peugeot106emblem/PeugeotSilverLogo.png lib/peugeotLogo/peugeot106Black.png lib/peugeotLogo/peugeot106Silver.png
     QML_FILES AccelerationView/AccelerationView.qml
+    QML_FILES TechnometerView/TechnometerView.qml
     QML_FILES ClockView/ClockView.qml DataView/DataView.qml
     QML_FILES DataView/TemperatureAndHumidityGauge.qml
     RESOURCES lib/icons/carIcon.png lib/icons/raspberryPIIcon.png lib/icons/windIcon.png
     RESOURCES lib/peugeotLogo/peugeotLogoSilver.png
     RESOURCES lib/icons/TopDownRedCar.png
-    QML_FILES mainPY.qml
     QML_FILES main.qml
 )
 

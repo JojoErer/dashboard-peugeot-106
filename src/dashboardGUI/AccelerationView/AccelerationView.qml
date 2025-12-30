@@ -8,7 +8,7 @@ Item {
     // === Input Properties (externally settable from main.qml or backend) ===
     property real ax: 3
     property real ay: 2
-    property real maxAcceleration: 1.5
+    property real maxAcceleration: 1
     property int contourCount: 4
     property int tickCount: 4
     property int tickDecimals: 1

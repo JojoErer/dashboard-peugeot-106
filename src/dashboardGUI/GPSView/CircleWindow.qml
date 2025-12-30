@@ -7,6 +7,7 @@ Item {
     property real centerLat: 52.0910
     property real centerLon: 5.1225
     property int zoom: 14
+    property bool darkMode
     anchors.fill: parent
 
     // Store local points for computing car heading
@@ -35,6 +36,7 @@ Item {
                 function onCenterLatChanged() { canvas.requestPaint() }
                 function onCenterLonChanged() { canvas.requestPaint() }
                 function onZoomChanged() { canvas.requestPaint() }
+                function onDarkModeChanged() { canvas.requestPaint() }
             }
 
             onPaint: {
@@ -84,8 +86,13 @@ Item {
                         var px = tx * tileSize - minX
                         var py = ty * tileSize - minY
 
-                        var filePath = "../lib/mapNL/" +
-                                       root.zoom + "/" + tx + "/" + ty + ".png"
+                        if (darkMode) {
+                            var filePath = "../lib/mapNL/" +
+                                        root.zoom + "/" + tx + "/" + ty + ".png"}
+                        else {
+                            var filePath = "../lib/mapNLDarkmode/" +
+                                        root.zoom + "/" + tx + "/" + ty + ".png"
+                        }
 
                         var img = Qt.createQmlObject('import QtQuick 2.15; Image {}', canvas)
                         img.source = filePath

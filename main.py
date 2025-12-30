@@ -11,9 +11,10 @@ from src.sensors.DHT11 import DHT11
 from src.sensors.LDRLM393 import LDRLM393
 from src.sensors.VK162GPS import VK162GPS
 from src.sensors.MPU6050 import MPU6050
+from src.sensors.RPMreader import RPMreader
 from src.sensors.ButtonHandler import ButtonHandler
 from src.DebuggingView import DebuggerWindow
-  
+
 class DashboardBackend(QObject):       
     # --- Signals for QML updates ---
     velocityChanged = Signal()
@@ -28,6 +29,7 @@ class DashboardBackend(QObject):
     axChanged = Signal()
     ayChanged = Signal()
     isDaytimeChanged = Signal()
+    rpmChanged = Signal()
     gpsConnectedChanged = Signal()
     nextOverlayRequested = Signal()
     calibrationStateChanged = Signal()
@@ -48,6 +50,7 @@ class DashboardBackend(QObject):
         self._piTemperature = 0.0
         self._ax = 0.0
         self._ay = 0.0
+        self._rpm = 0.0
         self._isDaytime = True
         self._gpsConnected = False
         self._calibrationState = ""
@@ -235,6 +238,16 @@ class DashboardBackend(QObject):
             self._isDaytime = val
             self.isDaytimeChanged.emit()
             
+    @Property(float, notify=rpmChanged)
+    def rpm(self):
+        return self._rpm
+    @rpm.setter
+    def rpm(self, val):
+        if self._rpm != val:
+            self._rpm = val
+            self.rpmChanged.emit()
+
+            
 # ============================================================
 #                       MAIN APPLICATION
 # ============================================================
@@ -245,7 +258,9 @@ if __name__ == "__main__":
     engine = QQmlApplicationEngine()
     backend = DashboardBackend()
     engine.rootContext().setContextProperty("backend", backend)
+    
     debugOn = True
+    engine.rootContext().setContextProperty("debugOn", debugOn)
 
     qml_file = os.path.join(os.path.dirname(__file__), "src/dashboardGUI/main.qml")
     engine.load(qml_file)
@@ -277,6 +292,16 @@ if __name__ == "__main__":
             init_status.append("LDR: real")
     except Exception as e:
         init_errors.append(f"LDR: {e}")
+        
+    # --- RPM ---
+    try:
+        rpm_reader = RPMreader(pin=17, pulses_per_revolution=1)
+        if rpm_reader.test_mode:
+            init_status.append("RPM: simulated")
+        else:
+            init_status.append("RPM: real")
+    except Exception as e:
+        init_errors.append(f"RPM: {e}")
 
     # --- GPS ---
     try:
@@ -333,14 +358,6 @@ if __name__ == "__main__":
 
     # --- Main periodic update ---
     def update_values():
-        # Temp & humidity
-        car_temp, car_hum = dht.read_sensor_data("car")
-        vent_temp, vent_hum = dht.read_sensor_data("vent")
-        if car_temp is not None: backend.tempInside = car_temp
-        if car_hum is not None: backend.humidityInside = car_hum
-        if vent_temp is not None: backend.tempOutside = vent_temp
-        if vent_hum is not None: backend.humidityOutside = vent_hum
-
         # Light
         light1 = light_sensor.read_light_intensity(light_sensor.pin1)
         light2 = light_sensor.read_light_intensity(light_sensor.pin2)
@@ -356,27 +373,42 @@ if __name__ == "__main__":
             backend.gpsTime = gps_data.get("timestamp", "00:00")
 
         # Acceleration
-        ax, ay, _ = mpu.get_calibrated_acceleration()
-        backend.ax = ax
-        backend.ay = ay
+        if backend.currentView == "accel":
+            ax, ay, _ = mpu.get_calibrated_acceleration()
+            backend.ax = ax
+            backend.ay = ay
+        
+        # --- RPM (simulated for now) ---
+        if backend.currentView == "techno":
+            rpm = rpm_reader.read_rpm()
+            backend.rpm = rpm
 
         # Pi temp
-        def get_cpu_temperature():
-            try:
-                cpu = CPUTemperature()
-                return cpu.temperature
-            except Exception:
-                return None
+        if backend.currentView == "data":
+            def get_cpu_temperature():
+                try:
+                    cpu = CPUTemperature()
+                    return cpu.temperature
+                except Exception:
+                    return None
 
-        CPUTemp = get_cpu_temperature()
-        if CPUTemp is not None:
-            backend.piTemperature = CPUTemp
-        else:
-            backend.piTemperature = random.uniform(35, 55)
+            CPUTemp = get_cpu_temperature()
+            if CPUTemp is not None:
+                backend.piTemperature = CPUTemp
+            else:
+                backend.piTemperature = random.uniform(35, 55)
+                
+            # Temp & humidity
+            car_temp, car_hum = dht.read_sensor_data("car")
+            vent_temp, vent_hum = dht.read_sensor_data("vent")
+            if car_temp is not None: backend.tempInside = car_temp
+            if car_hum is not None: backend.humidityInside = car_hum
+            if vent_temp is not None: backend.tempOutside = vent_temp
+            if vent_hum is not None: backend.humidityOutside = vent_hum 
 
         # --- Check button presses ---
         if buttons.is_pressed("next"):
-            views = ["gps", "clock", "data", "accel"]
+            views = ["gps", "clock", "data", "accel", "techno"]
             current_index = views.index(backend.currentView)
             next_index = (current_index + 1) % len(views)
             backend.currentView = views[next_index]

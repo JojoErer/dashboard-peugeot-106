@@ -7,11 +7,12 @@ import "GPSView"
 import "ClockView"
 import "DataView"
 import "AccelerationView"
+import "TechnometerView"
 
 ApplicationWindow {
     id: root
     visible: true
-    visibility: Window.FullScreen
+    visibility: debugOn ? Window.Windowed : Window.FullScreen
     width: Screen.width
     height: Screen.height
 
@@ -19,8 +20,7 @@ ApplicationWindow {
     property real uiRotation: 142
 
     // ====== Global State ======
-    property bool isDaytime: backend.isDaytime
-    property color dayColor: backend.isDaytime ? "white" : "#FFDF00"
+    property color dayColor: backend.isDaytime ? "white" :  "#ffd577"
     property bool showOverlays: backend.showOverlays
 
     // ====== ROTATED ROOT ======
@@ -53,9 +53,20 @@ ApplicationWindow {
             zoom: 14
             centerLat: backend.centerLat
             centerLon: backend.centerLon
+            darkMode:  backend.isDaytime
 
             Behavior on centerLat { NumberAnimation { duration: 500; easing.type: Easing.InOutQuad } }
             Behavior on centerLon { NumberAnimation { duration: 500; easing.type: Easing.InOutQuad } }
+        }
+
+        // --- Technometer View ---
+        TechnometerView {
+            id: technoView
+            anchors.fill: parent
+            visible: backend.currentView === "techno"
+
+            rpm: backend.rpm   
+            textColor: root.dayColor
         }
 
         // --- Data Panel ---
@@ -105,12 +116,14 @@ ApplicationWindow {
             textColor: root.dayColor
             visible: backend.currentView !== "clock"
                      && (backend.currentView !== "gps" || root.showOverlays)
+                     && backend.currentView !== "techno"
         }
 
         BottomBar {
             id: bottomBar
             visible: backend.currentView !== "clock"
-                     && (backend.currentView !== "gps" || root.showOverlays)
+                     && (backend.currentView !== "gps" || root.showOverlays) 
+                     && backend.currentView !== "techno"
         }
 
         // ====== SYSTEM STATUS / SHUTDOWN MESSAGE ======
@@ -180,8 +193,8 @@ ApplicationWindow {
 
             SequentialAnimation on opacity {
                 running: true
-                PropertyAnimation { duration: 2000; to: 1.0 }
-                PauseAnimation { duration: 2000 }
+                PropertyAnimation { duration: 1000; to: 1.0 }
+                PauseAnimation { duration: 1000 }
                 PropertyAnimation {
                     duration: 1000
                     to: 0.0

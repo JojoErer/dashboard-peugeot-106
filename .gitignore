@@ -3,5 +3,6 @@
 *.mtl
 **/.venv/
 **/lib/mapNL/
+**/lib/mapNLDarkmode/
 **/src/dashboardGUI/build/
 **/src/dashboardGUI/.qtcreator

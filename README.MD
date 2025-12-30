@@ -115,3 +115,11 @@ Future improvements:
 - Update the view to have various options and layouts.
 - Updat the offline map with other map types.
 - Further integration with the car by displaying other ECU sensor data. 
+
+To do software V2:
+- Debug is no longer in full screen - done
+- add technometer 
+- improve gps updates
+- calibrate light colour - done
+- Add darkmode map - done
+- feature for git pulls
