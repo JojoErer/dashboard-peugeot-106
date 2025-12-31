@@ -92,8 +92,8 @@ class GitUpdater:
 
             self._set_status(
                 "Update successful\n"
-                f"Version: {old_version} → {new_version}\n"
-                f"Commit: {old_commit} → {new_commit}\n"
+                f"Version: {old_version} to {new_version}\n"
+                f"Commit: {old_commit} to {new_commit}\n"
                 "Restart recommended"
             )
 

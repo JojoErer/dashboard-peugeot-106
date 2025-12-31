@@ -5,6 +5,7 @@ import glob
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
+
 class VK162GPS:
     def __init__(self, port=None, baudrate=9600, test_mode=False):
         self.port = port
@@ -12,7 +13,7 @@ class VK162GPS:
         self.test_mode = test_mode
         self.ser = None
 
-        # Store last known GPS data
+        # Last known GPS data (always returned)
         self._last_data = {
             'latitude': None,
             'longitude': None,
@@ -23,159 +24,121 @@ class VK162GPS:
             'hdop': None
         }
 
-        # Auto-detect VK-162 (USB)
+        # Auto-detect GPS
         if not port and not test_mode:
-            possible_ports = glob.glob('/dev/ttyACM0*')
-            if possible_ports:
-                self.port = possible_ports[0]
+            ports = glob.glob('/dev/ttyACM*')
+            if ports:
+                self.port = ports[0]
                 print(f"[INFO] Found VK-162 GPS on {self.port}")
             else:
-                print("[INFO] No GPS device found. Switching to test mode.")
+                print("[INFO] No GPS found → test mode")
                 self.test_mode = True
 
         if not self.test_mode and self.port:
             try:
-                self.ser = serial.Serial(self.port, self.baudrate, timeout=1)
-                print(f"[INFO] Connected to GPS on {self.port} ({self.baudrate} baud)")
+                # NON-BLOCKING serial
+                self.ser = serial.Serial(self.port, self.baudrate, timeout=0)
+                print(f"[INFO] GPS opened on {self.port}")
             except Exception as e:
-                print(f"[INFO] Could not open {self.port}: {e}")
+                print(f"[ERROR] Failed to open GPS: {e}")
                 self.test_mode = True
 
+    # =====================================================
+    # ================= INITIALIZATION ====================
+    # =====================================================
     def initialize(self):
-        """GPS is considered initialized even without satellite lock."""
         if self.test_mode:
-            print("[INFO] Running in GPS test mode (simulated data).")
+            print("[INFO] GPS running in test mode")
             return True
 
-        print("[INFO] Initializing GPS...")
-        # Just check if we receive ANY NMEA data
-        for _ in range(10):
-            line = self.read_gps_data()
-            if line:
-                print("[INFO] GPS is responding (may or may not have fix).")
+        print("[INFO] Initializing GPS (waiting for data)...")
+        start = time.time()
+        while time.time() - start < 2.0:
+            if self.ser.in_waiting:
+                print("[INFO] GPS is responding")
                 return True
-            time.sleep(1)
+            time.sleep(0.1)
 
-        print("[INFO] No NMEA data received. Switching to test mode.")
+        print("[WARN] No GPS data received, switching to test mode")
         self.test_mode = True
         return True
 
-    def read_gps_data(self):
-        if self.test_mode:
-            return None
-        try:
-            data = self.ser.readline().decode('ascii', errors='ignore').strip()
-            if data.startswith('$'):
-                return data
-        except Exception as e:
-            print(f"Error reading GPS data: {e}")
-        return None
+    # =====================================================
+    # ================= NMEA PARSING ======================
+    # =====================================================
+    def parse_nmea_sentence(self, sentence):
+        data = {}
 
-    def parse_nmea_sentence(self, nmea_sentence):
-        """Parse NMEA and return usable data."""
-        gps_data = {
-            'latitude': None,
-            'longitude': None,
-            'speed': None,
-            'timestamp': None,
-            'fix_status': None,
-            'satellites': None,
-            'hdop': None
-        }
+        if '*' in sentence:
+            sentence = sentence.split('*')[0]
 
-        # Strip checksum
-        if '*' in nmea_sentence:
-            nmea_sentence = nmea_sentence.split('*')[0]
-
-        parts = nmea_sentence.split(',')
-        if len(parts) < 3:
-            return gps_data
+        parts = sentence.split(',')
 
         try:
-            # GGA sentence → fix quality, satellites, hdop, lat/lon
+            # ---------- GGA ----------
             if parts[0] == "$GPGGA":
-                gps_data['fix_status'] = int(parts[6]) if parts[6].isdigit() else 0
-                gps_data['satellites'] = int(parts[7]) if parts[7].isdigit() else 0
-                gps_data['hdop'] = float(parts[8]) if parts[8] else None
+                data['fix_status'] = int(parts[6]) if parts[6].isdigit() else 0
+                data['satellites'] = int(parts[7]) if parts[7].isdigit() else 0
+                data['hdop'] = float(parts[8]) if parts[8] else None
 
-                if gps_data['fix_status'] > 0 and parts[2] and parts[4]:
-                    lat_raw = float(parts[2])
-                    lat_deg = int(lat_raw / 100)
-                    lat_min = lat_raw - lat_deg * 100
-                    latitude = lat_deg + lat_min / 60.0
-                    if parts[3] == 'S':
-                        latitude = -latitude
-
-                    lon_raw = float(parts[4])
-                    lon_deg = int(lon_raw / 100)
-                    lon_min = lon_raw - lon_deg * 100
-                    longitude = lon_deg + lon_min / 60.0
-                    if parts[5] == 'W':
-                        longitude = -longitude
-
-                    gps_data['latitude'] = latitude
-                    gps_data['longitude'] = longitude
-
-            # RMC sentence → UTC time + speed + lat/lon
-            elif parts[0] == "$GPRMC":
-                status = parts[2]  # A = valid, V = void
+            # ---------- RMC ----------
+            elif parts[0] == "$GPRMC" and parts[2] == 'A':
                 utc_time = parts[1]
                 utc_date = parts[9]
 
+                # Time
                 if len(utc_time) >= 6 and len(utc_date) == 6:
-                    day = int(utc_date[0:2])
-                    month = int(utc_date[2:4])
-                    year = 2000 + int(utc_date[4:6])  # convert YY to 20YY
+                    dt = datetime(
+                        2000 + int(utc_date[4:6]),
+                        int(utc_date[2:4]),
+                        int(utc_date[0:2]),
+                        int(utc_time[0:2]),
+                        int(utc_time[2:4]),
+                        int(utc_time[4:6]),
+                        tzinfo=timezone.utc
+                    )
+                    data['timestamp'] = dt.astimezone(
+                        ZoneInfo("Europe/Amsterdam")
+                    ).strftime("%H:%M")
 
-                    hours = int(utc_time[0:2])
-                    minutes = int(utc_time[2:4])
-                    seconds = int(utc_time[4:6])
-
-                    # Build a precise UTC datetime from GPS
-                    utc_dt = datetime(year, month, day, hours, minutes, seconds, tzinfo=timezone.utc)
-
-                    # Convert to Dutch time (DST aware)
-                    dutch_time = utc_dt.astimezone(ZoneInfo("Europe/Amsterdam"))
-
-                    gps_data['timestamp'] = dutch_time.strftime("%H:%M")
-
-                # Speed in knots → km/h
+                # Speed (knots → km/h)
                 if parts[7]:
-                    try:
-                        gps_data['speed'] = float(parts[7]) * 1.852
-                    except:
-                        gps_data['speed'] = 0.0
+                    data['speed'] = float(parts[7]) * 1.852
 
-                # Only update lat/lon if valid fix
-                if status == 'A' and parts[3] and parts[5]:
-                    lat_raw = float(parts[3])
-                    lat_deg = int(lat_raw / 100)
-                    lat_min = lat_raw - lat_deg * 100
-                    latitude = lat_deg + lat_min / 60.0
-                    if parts[4] == 'S':
-                        latitude = -latitude
+                # Position
+                lat_raw = float(parts[3])
+                lon_raw = float(parts[5])
 
-                    lon_raw = float(parts[5])
-                    lon_deg = int(lon_raw / 100)
-                    lon_min = lon_raw - lon_deg * 100
-                    longitude = lon_deg + lon_min / 60.0
-                    if parts[6] == 'W':
-                        longitude = -longitude
+                lat = int(lat_raw / 100) + (lat_raw % 100) / 60.0
+                lon = int(lon_raw / 100) + (lon_raw % 100) / 60.0
 
-                    gps_data['latitude'] = latitude
-                    gps_data['longitude'] = longitude
+                if parts[4] == 'S':
+                    lat = -lat
+                if parts[6] == 'W':
+                    lon = -lon
 
-        except Exception as e:
-            print(f"Error parsing NMEA sentence: {e}")
+                data['latitude'] = lat
+                data['longitude'] = lon
 
-        return gps_data
+        except Exception:
+            pass
 
+        return data
+
+    # =====================================================
+    # ================= MAIN UPDATE =======================
+    # =====================================================
     def get_data(self):
+        """
+        Call this ONCE PER SECOND.
+        Reads ALL buffered NMEA sentences and updates cached data.
+        """
+
         if self.test_mode:
             self._last_data = {
-                'latitude': 52.1070 + random.uniform(-0.005, 0.005),
-                'longitude': 5.1214 + random.uniform(-0.005, 0.005),
-                'speed': random.uniform(110, 120),
+                'latitude': 52.1070 + random.uniform(-0.002, 0.002),
+                'longitude': 5.1214 + random.uniform(-0.002, 0.002),
+                'speed': random.uniform(0, 120),
                 'timestamp': datetime.now().strftime('%H:%M'),
                 'fix_status': 1,
                 'satellites': 8,
@@ -183,18 +146,31 @@ class VK162GPS:
             }
             return self._last_data
 
-        sentence = self.read_gps_data()
-        if sentence:
-            parsed = self.parse_nmea_sentence(sentence)
-            # Update last known data only if values are not None
-            for key, value in parsed.items():
-                if value is not None:
-                    self._last_data[key] = value
+        # Drain serial buffer (≈1 second worth of data)
+        start = time.time()
+        while time.time() - start < 0.1:  # 100 ms drain window
+            if not self.ser.in_waiting:
+                break
 
-        # Always return last known data
+            try:
+                line = self.ser.readline().decode('ascii', errors='ignore').strip()
+                if not line.startswith('$'):
+                    continue
+
+                parsed = self.parse_nmea_sentence(line)
+                for key, value in parsed.items():
+                    if value is not None:
+                        self._last_data[key] = value
+
+            except Exception:
+                break
+
         return self._last_data
 
+    # =====================================================
+    # ================= CLEANUP ===========================
+    # =====================================================
     def close(self):
         if self.ser:
             self.ser.close()
-            print("[INFO] GPS connection closed.")
+            self.ser = None

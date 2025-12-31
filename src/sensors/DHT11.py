@@ -4,7 +4,6 @@ try:
     ADAFRUIT_AVAILABLE = True
 except ImportError:
     ADAFRUIT_AVAILABLE = False
-    print("[Warning] Adafruit_DHT library not found — running in simulation mode.")
 
 import random
 

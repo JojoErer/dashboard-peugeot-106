@@ -73,10 +73,7 @@ class MPU6050:
         self.ax_offset = ax_sum / num_samples
         self.ay_offset = ay_sum / num_samples
         self.az_offset = az_sum / num_samples
-
-        print(f"[INFO] Calibration complete: ax={self.ax_offset:.2f}, ay={self.ay_offset:.2f}, az={self.az_offset:.2f}")
-
-        self.save_calibration()  # Save the calibration data after calibration
+        self.save_calibration() 
 
     def get_calibrated_acceleration(self):
         """Return calibrated accelerometer readings."""
@@ -100,7 +97,6 @@ class MPU6050:
             f.write(f"{self.ax_offset}\n")
             f.write(f"{self.ay_offset}\n")
             f.write(f"{self.az_offset}\n")
-        print(f"[INFO] MPU6050 calibration saved: ax_offset={self.ax_offset}, ay_offset={self.ay_offset}, az_offset={self.az_offset}")
 
     def load_calibration(self):
         """Load calibration data from a file."""
@@ -112,6 +108,5 @@ class MPU6050:
                     self.ax_offset = float(lines[0].strip())
                     self.ay_offset = float(lines[1].strip())
                     self.az_offset = float(lines[2].strip())
-                    print(f"[INFO] Loaded MPU6050 calibration: ax_offset={self.ax_offset}, ay_offset={self.ay_offset}, az_offset={self.az_offset}")
         else:
             print("[INFO] No MPU6050 calibration file found. Using default calibration.")

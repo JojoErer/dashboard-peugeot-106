@@ -136,9 +136,24 @@ ApplicationWindow {
 
             property int padding: 16
 
-            width: Math.min(parent.width * 0.9,
-                            statusText.paintedWidth + padding * 2)
-            height: statusText.paintedHeight + padding * 2
+            property bool hasSensorMessage: backend.sensorStatusMessage !== ""
+            property bool hasSystemMessage: backend.systemActionState !== "idle"
+            property bool hasShutdownMessage: backend.velocity === 0 && backend.currentView === "clock"
+
+            property bool hasAnyMessage: hasSensorMessage || hasSystemMessage || hasShutdownMessage
+
+            width: hasAnyMessage
+                ? Math.max(errorText.implicitWidth + padding * 2,
+                            statusText.implicitWidth + padding * 2,
+                            actionText.implicitWidth + padding * 2)
+                : 0
+            height: hasAnyMessage
+                    ? Math.max(errorText.implicitHeight + padding * 2,
+                            statusText.implicitHeight + padding * 2, 
+                            actionText.implicitHeight + padding * 2 + statusText.implicitHeight)
+                    : 0
+            visible: hasAnyMessage
+
 
             anchors.centerIn: parent
             anchors.verticalCenterOffset: parent.height / 4
@@ -147,10 +162,11 @@ ApplicationWindow {
                 id: messageColumn
                 anchors.centerIn: parent
                 spacing: 8
-                width: systemMessageBox.width - systemMessageBox.padding * 2   // leave padding
+                width: systemMessageBox.width - systemMessageBox.padding * 2
 
                 // --- Sensor Status ---
                 Text {
+                    id: statusText
                     width: parent.width
                     font.pointSize: 16
                     font.bold: true
@@ -163,11 +179,11 @@ ApplicationWindow {
 
                 // --- System Action State ---
                 Text {
+                    id: actionText
                     width: parent.width
                     font.pointSize: 16
                     font.bold: true
                     horizontalAlignment: Text.AlignHCenter
-                    wrapMode: Text.WordWrap
                     color: "yellow"
                     visible: backend.systemActionState !== "idle"
                     text: {
@@ -186,11 +202,11 @@ ApplicationWindow {
 
                 // --- Shutdown Instruction ---
                 Text {
+                    id: errorText
                     width: parent.width
                     font.pointSize: 16
                     font.bold: true
                     horizontalAlignment: Text.AlignHCenter
-                    wrapMode: Text.WordWrap
                     color: "red"
                     visible: backend.velocity === 0 && backend.currentView === "clock"
                     text: "Hold top button to shutdown"
@@ -200,7 +216,7 @@ ApplicationWindow {
             // ===== Timer to hide messages automatically (except shutdown) =====
             Timer {
                 id: hideMessageTimer
-                interval: 2000
+                interval: 4000
                 repeat: false
                 running: (backend.sensorStatusMessage !== "" || backend.systemActionState !== "idle")
                 onTriggered: {

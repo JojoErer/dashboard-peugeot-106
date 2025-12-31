@@ -5,7 +5,6 @@ try:
     RPI_AVAILABLE = True
 except ImportError:
     RPI_AVAILABLE = False
-    print("[Warning] RPi.GPIO not found — running in simulation mode.")
 
 class LDRLM393:
     def __init__(self, pin1=22, pin2=10):

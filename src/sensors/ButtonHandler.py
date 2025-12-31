@@ -54,7 +54,6 @@ class ButtonHandler:
             # Simulation mode: randomly trigger buttons
             if random.random() < 0.3:
                 pressed = True
-                print(f"[SIM] {name} button pressed")
 
         if pressed:
             self.last_press_time[name] = now
@@ -77,7 +76,6 @@ class ButtonHandler:
         if next_pressed and extra_pressed:
             start_times = [t for t in self.press_start_time.values() if t != 0]
             if start_times and now - min(start_times) >= self.shutdown_threshold:
-                print(f"[INFO] Both buttons held for {self.shutdown_threshold} seconds. Shutting down...")
                 self.cleanup()
                 os.system("sudo shutdown now")
                 return True
