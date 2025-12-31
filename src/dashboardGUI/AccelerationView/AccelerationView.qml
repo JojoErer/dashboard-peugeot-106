@@ -135,26 +135,6 @@ Item {
             width: 16; height: 16; radius: 5; color: "red"
             x: disk.x + disk.width/2 + (ax / maxAcceleration) * (disk.width/2) - width/2
             y: disk.y + disk.height/2 - (ay / maxAcceleration) * (disk.height/2) - height/2
-        }
-
-        Rectangle {
-            id: calibrationOverlay
-            anchors.centerIn: parent
-            width: parent.width * 0.6
-            height: 80
-            radius: 10
-            color: "#00000000"  // Fully transparent
-            visible: calibrationState !== "idle"
-            z: 10
-
-            Text {
-                anchors.centerIn: parent
-                text: calibrationState === "calibrating" ? "Calibrating..." :
-                    calibrationState === "done" ? "Calibration complete" :
-                    calibrationState === "failed" ? "Calibration failed" : ""
-                color: "orange"
-                font.pixelSize: 32
-            }
-        }
+        }    
     }
 }

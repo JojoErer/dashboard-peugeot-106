@@ -3,14 +3,16 @@ from PySide6.QtWidgets import (
     QPushButton, QHBoxLayout, QCheckBox, QLineEdit
 )
 from PySide6.QtCore import QTimer
-
 from src.sensors.MPU6050 import MPU6050
 
 
 class DebuggerWindow(QWidget):
-    def __init__(self, backend):
+    def __init__(self, backend, git_updater):
         super().__init__()
+
         self.backend = backend
+        self.git_updater = git_updater
+
         self.setWindowTitle("Dashboard Debugger")
         self.setMinimumWidth(320)
 
@@ -49,7 +51,7 @@ class DebuggerWindow(QWidget):
                  lambda v: setattr(backend, "velocity", v))
 
         add_spin("RPM:", 0, 9000, 50,
-                 lambda: getattr(backend, "rpm", 0),
+                 lambda: backend.rpm,
                  lambda v: setattr(backend, "rpm", v))
 
         add_text("GPS Time (HH:MM):",
@@ -102,11 +104,11 @@ class DebuggerWindow(QWidget):
 
         # ===== Buttons =====
         btn_view = QPushButton("Bottom button")
-        btn_overlay = QPushButton("Top button")
+        btn_action = QPushButton("Top button")
         btn_close = QPushButton("Close")
 
         layout.addWidget(btn_view)
-        layout.addWidget(btn_overlay)
+        layout.addWidget(btn_action)
         layout.addWidget(btn_close)
 
         # ===== Button logic =====
@@ -119,35 +121,49 @@ class DebuggerWindow(QWidget):
             backend.currentView = views[(idx + 1) % len(views)]
             print("[DEBUGGER] Next view ->", backend.currentView)
 
-        def toggle_overlay():
-            if backend.currentView == "accel":
-                if backend.calibrationState == "calibrating":
-                    print("[INFO] Calibration already in progress")
+        def handle_top_button():
+            # --- Git update ---
+            if backend.currentView == "data":
+                if backend.systemActionState != "idle":
+                    print("[INFO] System busy:", backend.systemActionState)
                     return
 
-                print("[BUTTON] Calibrating MPU6050...")
-                backend.calibrationState = "calibrating"
+                print("[DEBUGGER] Git update requested")
+                backend.sensorStatusMessage = "Checking for updates..."
+                backend.systemActionState = "git_checking"
+                self.git_updater.handle_update_request()
+
+            # --- MPU calibration ---
+            elif backend.currentView == "accel":
+                if backend.systemActionState == "calibrating_mpu":
+                    print("[INFO] MPU calibration already in progress")
+                    return
+
+                print("[DEBUGGER] Calibrating MPU6050...")
+                backend.systemActionState = "calibrating_mpu"
+
                 try:
                     mpu.calibrate_accelerometer()
-                    backend.calibrationState = "done"
+                    backend.systemActionState = "mpu_done"
                 except Exception as e:
-                    backend.calibrationState = "failed"
+                    backend.systemActionState = "mpu_failed"
                     print("[ERROR]", e)
 
                 QTimer.singleShot(
                     2000,
-                    lambda: setattr(backend, "calibrationState", "idle")
+                    lambda: setattr(backend, "systemActionState", "idle")
                 )
 
+            # --- GPS overlay ---
             elif backend.currentView == "gps":
                 backend.showOverlays = not backend.showOverlays
-                print("[BUTTON] Toggle GPS overlay")
+                print("[DEBUGGER] Toggle GPS overlay")
 
             else:
-                print("[BUTTON] No action in this view")
+                print("[DEBUGGER] No action in this view")
 
         btn_view.clicked.connect(cycle_view)
-        btn_overlay.clicked.connect(toggle_overlay)
+        btn_action.clicked.connect(handle_top_button)
         btn_close.clicked.connect(self.close)
 
         self.setLayout(layout)

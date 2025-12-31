@@ -126,14 +126,13 @@ ApplicationWindow {
                      && backend.currentView !== "techno"
         }
 
-        // ====== SYSTEM STATUS / SHUTDOWN MESSAGE ======
-
+        // ====== SYSTEM / ACTION / SHUTDOWN OVERLAY ======
         Rectangle {
-            id: shutdownBackground
+            id: systemMessageBox
             color: "black"
             radius: 10
             border.color: "silver"
-            border.width: 2
+            border.width: 3
 
             property int padding: 16
 
@@ -144,32 +143,79 @@ ApplicationWindow {
             anchors.centerIn: parent
             anchors.verticalCenterOffset: parent.height / 4
 
-            visible: backend.velocity === 0 && backend.currentView === "clock"
-
-            Text {
-                id: statusText
+            Column {
+                id: messageColumn
                 anchors.centerIn: parent
-                color: backend.sensorStatusMessage.startsWith("All")
-                       ? "lime" : "red"
-                font.bold: true
-                font.pointSize: 16
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-                wrapMode: Text.WordWrap
-                width: shutdownBackground.width
-                       - shutdownBackground.padding * 2
-                text: backend.sensorStatusMessage
+                spacing: 8
+                width: systemMessageBox.width - systemMessageBox.padding * 2   // leave padding
+
+                // --- Sensor Status ---
+                Text {
+                    width: parent.width
+                    font.pointSize: 16
+                    font.bold: true
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.WordWrap
+                    color: backend.sensorStatusMessage.startsWith("All") ? "lime" : "red"
+                    visible: backend.sensorStatusMessage !== ""
+                    text: backend.sensorStatusMessage
+                }
+
+                // --- System Action State ---
+                Text {
+                    width: parent.width
+                    font.pointSize: 16
+                    font.bold: true
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.WordWrap
+                    color: "yellow"
+                    visible: backend.systemActionState !== "idle"
+                    text: {
+                        switch(backend.systemActionState) {
+                            case "calibrating_mpu": return "Calibrating MPU6050...";
+                            case "mpu_done": return "MPU6050 calibration complete";
+                            case "mpu_failed": return "MPU6050 calibration failed";
+                            case "git_checking": return "Checking for software updates...";
+                            case "git_updating": return "Updating software...";
+                            case "git_done": return "Update complete";
+                            case "git_failed": return "Update failed";
+                            default: return "";
+                        }
+                    }
+                }
+
+                // --- Shutdown Instruction ---
+                Text {
+                    width: parent.width
+                    font.pointSize: 16
+                    font.bold: true
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.WordWrap
+                    color: "red"
+                    visible: backend.velocity === 0 && backend.currentView === "clock"
+                    text: "Hold top button to shutdown"
+                }
             }
 
+            // ===== Timer to hide messages automatically (except shutdown) =====
             Timer {
-                id: startupTimer
-                interval: 10000
-                running: true
+                id: hideMessageTimer
+                interval: 2000
                 repeat: false
+                running: (backend.sensorStatusMessage !== "" || backend.systemActionState !== "idle")
                 onTriggered: {
-                    statusText.text = "Hold top button to shutdown"
-                    statusText.color = "red"
+                    if (!(backend.velocity === 0 && backend.currentView === "clock")) {
+                        backend.sensorStatusMessage = ""
+                        backend.systemActionState = "idle"
+                    }
                 }
+            }
+
+            // ===== Run timer whenever a new message appears =====
+            Connections {
+                target: backend
+                onSensorStatusMessageChanged: { if (backend.sensorStatusMessage !== "") hideMessageTimer.restart() }
+                onSystemActionStateChanged: { if (backend.systemActionState !== "idle") hideMessageTimer.restart() }
             }
         }
 

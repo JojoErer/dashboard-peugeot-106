@@ -22,7 +22,10 @@ Item {
 
     // Animate needlePos whenever it changes
     Behavior on needlePos {
-        NumberAnimation { duration: 300; easing.type: Easing.InOutQuad }
+        SpringAnimation {
+            spring: 3
+            damping: 0.3
+        }
     }
 
     Rectangle {
@@ -66,7 +69,7 @@ Item {
             ctx.lineWidth = radius * 0.015
             ctx.textAlign = "center"
             ctx.textBaseline = "middle"
-            ctx.font = `${dialRadius * 0.12}px Arial`
+            ctx.font = `${dialRadius * 0.1}px Arial`
 
             for (let i = 0; i <= majorTicks; i++) {
                 const tickNorm = i / majorTicks
@@ -139,7 +142,7 @@ Item {
             ctx.moveTo(cx, cy)
             ctx.lineTo(nx, ny)
             ctx.strokeStyle = textColor
-            ctx.lineWidth = radius * 0.02
+            ctx.lineWidth = radius * 0.01
             ctx.stroke()
 
             // --- Center Cap ---
@@ -150,12 +153,12 @@ Item {
 
             // --- Text "tr/min x100" ---
             ctx.fillStyle = textColor
-            ctx.font = `${dialRadius * 0.12}px Arial`
+            ctx.font = `${dialRadius * 0.1}px Arial`
             ctx.fillText("tr/min x100", cx, cy - dialRadius * 0.5)
         }
     }
 
-    // Update the animated needle position whenever rpm changes
     onRpmChanged: needlePos = Math.min(rpm / maxRpm, 1)
     onTextColorChanged: canvas.requestPaint()
+    onNeedlePosChanged: canvas.requestPaint()
 }

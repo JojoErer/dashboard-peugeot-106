@@ -1,5 +1,6 @@
 import sys
 import os
+from pathlib import Path
 import random
 from gpiozero import CPUTemperature
 from PySide6.QtCore import QObject, Signal, Property, QTimer
@@ -14,9 +15,15 @@ from src.sensors.MPU6050 import MPU6050
 from src.sensors.RPMreader import RPMreader
 from src.sensors.ButtonHandler import ButtonHandler
 from src.DebuggingView import DebuggerWindow
+from src.gitUpdater import GitUpdater
 
-class DashboardBackend(QObject):       
-    # --- Signals for QML updates ---
+APP_VERSION = "1.1.0"
+
+# ============================================================
+#                     DASHBOARD BACKEND
+# ============================================================
+
+class DashboardBackend(QObject):
     velocityChanged = Signal()
     gpsTimeChanged = Signal()
     centerLatChanged = Signal()
@@ -31,14 +38,16 @@ class DashboardBackend(QObject):
     isDaytimeChanged = Signal()
     rpmChanged = Signal()
     gpsConnectedChanged = Signal()
-    nextOverlayRequested = Signal()
-    calibrationStateChanged = Signal()
+
     currentViewChanged = Signal()
     showOverlaysChanged = Signal()
     sensorStatusMessageChanged = Signal()
+    
+    systemActionStateChanged = Signal()
 
     def __init__(self):
         super().__init__()
+
         self._velocity = 0.0
         self._gpsTime = "00:00"
         self._centerLat = 52.1070
@@ -53,57 +62,48 @@ class DashboardBackend(QObject):
         self._rpm = 0.0
         self._isDaytime = True
         self._gpsConnected = False
-        self._calibrationState = ""
+
         self._currentView = "gps"
         self._showOverlays = True
         self._sensorStatusMessage = "Initializing sensors..."
 
+        self._systemActionState = "idle"
+
         self.load_settings()
 
+    # --------------------------------------------------------
+    # Debugger
+    # --------------------------------------------------------
+
     def show_debugger(self):
-        """Open the Debugger popup window."""
         if not hasattr(self, "_debugger") or self._debugger is None:
-            self._debugger = DebuggerWindow(self)
+            self._debugger = DebuggerWindow(self, git_updater)
         self._debugger.show()
         self._debugger.raise_()
         self._debugger.activateWindow()
 
+    # --------------------------------------------------------
+    # Settings
+    # --------------------------------------------------------
+
     def load_settings(self):
-        """Load settings from a file and apply them."""
-        settings_file = "settings.txt"
-        if os.path.exists(settings_file):
-            with open(settings_file, 'r') as f:
+        if os.path.exists("settings.txt"):
+            with open("settings.txt", "r") as f:
                 lines = f.readlines()
                 if len(lines) >= 2:
                     self._currentView = lines[0].strip()
-                    self._showOverlays = lines[1].strip().lower() == 'true'
-
+                    self._showOverlays = lines[1].strip().lower() == "true"
                     self.currentViewChanged.emit()
                     self.showOverlaysChanged.emit()
-                    print(f"[INFO] Loaded settings: View={self._currentView}, Overlays={self._showOverlays}")
-        else:
-            print("[INFO] No settings file found. Using default settings.")
 
     def save_settings(self):
-        """Save current settings (view and overlay) to a file."""
-        settings_file = "settings.txt"
-        with open(settings_file, 'w') as f:
+        with open("settings.txt", "w") as f:
             f.write(f"{self._currentView}\n")
             f.write(f"{'true' if self._showOverlays else 'false'}\n")
-        print(f"[INFO] Settings saved: View={self._currentView}, Overlays={self._showOverlays}")
 
-    def calibrate_mpu(self):
-        """Trigger MPU6050 calibration."""
-        mpu = MPU6050()
-        mpu.calibrate_accelerometer()
-        self._calibrationState = f"Calibrated: ax={mpu.ax_offset:.2f}, ay={mpu.ay_offset:.2f}, az={mpu.az_offset:.2f}"
-        self.calibrationStateChanged.emit()
-        print(self._calibrationState)
-
-    def load_mpu_calibration(self):
-        """Load MPU6050 calibration data from a file."""
-        mpu = MPU6050()
-        mpu.load_calibration()
+    # --------------------------------------------------------
+    # Properties
+    # --------------------------------------------------------
 
     @Property(str, notify=sensorStatusMessageChanged)
     def sensorStatusMessage(self):
@@ -114,9 +114,21 @@ class DashboardBackend(QObject):
         if self._sensorStatusMessage != val:
             self._sensorStatusMessage = val
             self.sensorStatusMessageChanged.emit()
+            
+    @Property(str, notify=systemActionStateChanged)
+    def systemActionState(self):
+        return self._systemActionState
+    
+    @systemActionState.setter
+    def systemActionState(self, val):
+        if self._systemActionState != val:
+            self._systemActionState = val
+            self.systemActionStateChanged.emit()
 
     @Property(str, notify=currentViewChanged)
-    def currentView(self): return self._currentView
+    def currentView(self):
+        return self._currentView
+
     @currentView.setter
     def currentView(self, val):
         if self._currentView != val:
@@ -125,13 +137,15 @@ class DashboardBackend(QObject):
             self.save_settings()
 
     @Property(bool, notify=showOverlaysChanged)
-    def showOverlays(self): return self._showOverlays
+    def showOverlays(self):
+        return self._showOverlays
+
     @showOverlays.setter
     def showOverlays(self, val):
         if self._showOverlays != val:
             self._showOverlays = val
             self.showOverlaysChanged.emit()
-            self.save_settings() 
+            self.save_settings()
 
     @Property(float, notify=velocityChanged)
     def velocity(self): return self._velocity
@@ -147,16 +161,7 @@ class DashboardBackend(QObject):
     def gpsTime(self, val):
         if self._gpsTime != val:
             self._gpsTime = val
-            self.gpsTimeChanged.emit()          
-            
-    @Property(str, notify=calibrationStateChanged)
-    def calibrationState(self):
-        return self._calibrationState
-    @calibrationState.setter
-    def calibrationState(self, val):
-        if self._calibrationState != val:
-            self._calibrationState = val
-            self.calibrationStateChanged.emit()
+            self.gpsTimeChanged.emit()
 
     @Property(float, notify=centerLatChanged)
     def centerLat(self): return self._centerLat
@@ -253,11 +258,23 @@ class DashboardBackend(QObject):
 # ============================================================
 
 if __name__ == "__main__":
-    
     app = QApplication(sys.argv)
     engine = QQmlApplicationEngine()
     backend = DashboardBackend()
     engine.rootContext().setContextProperty("backend", backend)
+    
+    # -------------------------------
+    # Git updater
+    # -------------------------------
+    def get_app_version():
+        return APP_VERSION
+
+    # Initialize GitUpdater with status_callback updating sensorStatusMessage
+    git_updater = GitUpdater(
+        repo_path=os.path.dirname(__file__),  # Assuming repo is main project folder
+        version_getter=get_app_version,
+        status_callback=lambda msg: setattr(backend, 'sensorStatusMessage', msg)
+    )
     
     debugOn = True
     engine.rootContext().setContextProperty("debugOn", debugOn)
@@ -358,92 +375,105 @@ if __name__ == "__main__":
 
     # --- Main periodic update ---
     def update_values():
-        # Light
-        light1 = light_sensor.read_light_intensity(light_sensor.pin1)
-        light2 = light_sensor.read_light_intensity(light_sensor.pin2)
-        backend.isDaytime = light1 > 0 or light2 > 0
+        try:
+            # --- Light Sensor ---
+            try:
+                light1 = light_sensor.read_light_intensity(light_sensor.pin1)
+                light2 = light_sensor.read_light_intensity(light_sensor.pin2)
+                backend.isDaytime = light1 > 0 or light2 > 0
+            except Exception as e:
+                backend.sensorStatusMessage = f"LDR read error: {e}"
 
-        # GPS
-        gps_data = gps_reader.get_data()
-        if gps_data:
-            if gps_data["latitude"] and gps_data["longitude"]:
-                backend.centerLat = gps_data["latitude"]
-                backend.centerLon = gps_data["longitude"]
-            backend.velocity = gps_data.get("speed", 0.0) if gps_data.get("speed", 0.0) >= 3.0 else 0
-            backend.gpsTime = gps_data.get("timestamp", "00:00")
+            # --- GPS ---
+            try:
+                gps_data = gps_reader.get_data()
+                if gps_data:
+                    if gps_data["latitude"] and gps_data["longitude"]:
+                        backend.centerLat = gps_data["latitude"]
+                        backend.centerLon = gps_data["longitude"]
+                    backend.velocity = gps_data.get("speed", 0.0) if gps_data.get("speed", 0.0) >= 3.0 else 0
+                    backend.gpsTime = gps_data.get("timestamp", "00:00")
+            except Exception as e:
+                backend.sensorStatusMessage = f"GPS read error: {e}"
 
-        # Acceleration
-        if backend.currentView == "accel":
-            ax, ay, _ = mpu.get_calibrated_acceleration()
-            backend.ax = ax
-            backend.ay = ay
-        
-        # --- RPM (simulated for now) ---
-        if backend.currentView == "techno":
-            rpm = rpm_reader.read_rpm()
-            backend.rpm = rpm
-
-        # Pi temp
-        if backend.currentView == "data":
-            def get_cpu_temperature():
-                try:
-                    cpu = CPUTemperature()
-                    return cpu.temperature
-                except Exception:
-                    return None
-
-            CPUTemp = get_cpu_temperature()
-            if CPUTemp is not None:
-                backend.piTemperature = CPUTemp
-            else:
-                backend.piTemperature = random.uniform(35, 55)
-                
-            # Temp & humidity
-            car_temp, car_hum = dht.read_sensor_data("car")
-            vent_temp, vent_hum = dht.read_sensor_data("vent")
-            if car_temp is not None: backend.tempInside = car_temp
-            if car_hum is not None: backend.humidityInside = car_hum
-            if vent_temp is not None: backend.tempOutside = vent_temp
-            if vent_hum is not None: backend.humidityOutside = vent_hum 
-
-        # --- Check button presses ---
-        if buttons.is_pressed("next"):
-            views = ["gps", "clock", "data", "accel", "techno"]
-            current_index = views.index(backend.currentView)
-            next_index = (current_index + 1) % len(views)
-            backend.currentView = views[next_index]
-            print("[BUTTON] Next view requested")   
-                    
-        if buttons.is_pressed("extra"):
+            # --- Acceleration ---
             if backend.currentView == "accel":
-                # Prevent spamming if already calibrating
-                if backend.calibrationState == "calibrating":
-                    print("[INFO] Calibration already in progress")
-                else:
-                    print("[BUTTON] Calibrating MPU6050 accelerometer...")
-                    backend.calibrationState = "calibrating"
-                    
-                    try:
-                        mpu.calibrate_accelerometer()
-                        print("[INFO] MPU6050 calibration complete")
-                        backend.calibrationState = "done"
-                    except Exception as e:
-                        print(f"[INFO] MPU6050 calibration failed: {e}")
-                        backend.calibrationState = "failed"
-                    
-                    # Reset to idle after 2 seconds
-                    QTimer.singleShot(2000, lambda: setattr(backend, "calibrationState", "idle"))
-            elif backend.currentView == "gps":
-                # Toggle GPS overlay visibility
-                backend.showOverlays = not backend.showOverlays
-                print("[BUTTON] Toggle GPS overlay")          
-            elif backend.currentView == "clock":
-                print(f"[INFO] Shutting down...")
-                os.system("sudo shutdown now")
-            else:
-                print("[BUTTON] No change in this view.")
-                
+                try:
+                    ax, ay, _ = mpu.get_calibrated_acceleration()
+                    backend.ax = ax
+                    backend.ay = ay
+                except Exception as e:
+                    backend.sensorStatusMessage = f"MPU6050 read error: {e}"
 
+            # --- RPM ---
+            if backend.currentView == "techno":
+                try:
+                    rpm = rpm_reader.read_rpm()
+                    backend.rpm = rpm
+                except Exception as e:
+                    backend.sensorStatusMessage = f"RPM read error: {e}"
+
+            # --- Pi Temp and DHT11 ---
+            if backend.currentView == "data":
+                try:
+                    cpu_temp = CPUTemperature().temperature
+                    backend.piTemperature = cpu_temp if cpu_temp else random.uniform(35, 55)
+                except Exception:
+                    backend.piTemperature = random.uniform(35, 55)
+                try:
+                    car_temp, car_hum = dht.read_sensor_data("car")
+                    vent_temp, vent_hum = dht.read_sensor_data("vent")
+                    if car_temp is not None: backend.tempInside = car_temp
+                    if car_hum is not None: backend.humidityInside = car_hum
+                    if vent_temp is not None: backend.tempOutside = vent_temp
+                    if vent_hum is not None: backend.humidityOutside = vent_hum
+                except Exception as e:
+                    backend.sensorStatusMessage = f"DHT11 read error: {e}"
+
+            # --- Buttons ---
+            if buttons.is_pressed("next"):
+                views = ["gps", "clock", "data", "accel", "techno"]
+                current_index = views.index(backend.currentView)
+                next_index = (current_index + 1) % len(views)
+                backend.currentView = views[next_index]
+                backend.systemActionState = f"Switched to view {backend.currentView}"
+
+            if buttons.is_pressed("extra"):
+                if backend.currentView == "data":
+                    if backend.systemActionState != "idle":
+                        print("[INFO] System busy:", backend.systemActionState)
+                        return
+
+                    print("[DEBUGGER] Git update requested")
+                    backend.sensorStatusMessage = "Checking for updates..."
+                    backend.systemActionState = "git_checking"
+                    git_updater.handle_update_request()
+                elif backend.currentView == "accel":
+                    if getattr(backend, "calibrationState", None) == "calibrating":
+                        backend.systemActionState = "MPU6050 calibration already in progress"
+                    else:
+                        backend.systemActionState = "Calibrating MPU6050..."
+                        backend.calibrationState = "calibrating"
+                        try:
+                            mpu.calibrate_accelerometer()
+                            backend.calibrationState = "done"
+                            backend.systemActionState = "MPU6050 calibration done"
+                        except Exception as e:
+                            backend.calibrationState = "failed"
+                            backend.systemActionState = f"MPU6050 calibration failed: {e}"
+                elif backend.currentView == "gps":
+                    backend.showOverlays = not backend.showOverlays
+                    backend.systemActionState = f"GPS overlays {'shown' if backend.showOverlays else 'hidden'}"
+                elif backend.currentView == "clock":
+                    backend.systemActionState = "Shutting down..."
+                    os.system("sudo shutdown now")
+                else:
+                    backend.systemActionState = "No action for this view"
+
+        except Exception as e:
+            backend.sensorStatusMessage = f"Unexpected error: {e}"
+            backend.systemActionState = "error"
+            
     timer = QTimer()
     if not debugOn:
         timer.timeout.connect(update_values)
