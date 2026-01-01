@@ -5,124 +5,151 @@ Item {
     id: root
 
     width: parent ? parent.width : 800
-    height: parent ? parent.height : 800
+    height: parent ? parent.height : 400
 
+    // ===== DATA =====
     property real rpm: 0
     property real maxRpm: 7000
     property real redlineRpm: 6000
 
-    property color textColor: "white"
+    readonly property real rpmNorm: Math.min(rpm / maxRpm, 1)
+    readonly property bool inRedZone: rpmNorm >= 0.8
 
+    // ===== COLORS =====
     property color bgColor: "black"
+    property color inactiveColor: "#222"
     property color greenColor: "#00ff66"
     property color blueColor: "#00c8ff"
     property color redColor: "#ff3b3b"
-    property color inactiveColor: "#222"
+    property color textColor: "white"
 
-    readonly property real rpmNorm: Math.min(rpm / maxRpm, 1)
-    readonly property real redlineNorm: redlineRpm / maxRpm
-
+    // Shift light thresholds
     property var shiftLights: [
-        0.3, 0.4, 0.5,   // green
-        0.6, 0.7,         // blue
-        0.8, 0.90, 0.95    // red
+        0.2, 0.3, 0.4,
+        0.5, 0.6,
+        0.7, 0.8, 0.9
     ]
 
-    // Background disk
+    // ===== GLOBAL 1 Hz BLINKER =====
+    property real blinkPhase: 1.0
+
+    SequentialAnimation on blinkPhase {
+        running: inRedZone
+        loops: Animation.Infinite
+        NumberAnimation { to: 0.2; duration: 500 }  // off
+        NumberAnimation { to: 1.0; duration: 500 }  // on
+    }
+
     Rectangle {
         anchors.fill: parent
-        color: "black"
+        color: bgColor
     }
 
-    Canvas {
-        id: canvas
-        antialiasing: true
+    Item {
+        id: gauge
         anchors.centerIn: parent
         width: Math.min(parent.width, parent.height) * 0.8
-        height: Math.min(parent.width, parent.height) * 0.5
+        height: parent.height * 0.5
 
-        onPaint: {
-            const ctx = getContext("2d")
-            const w = width
-            const h = height
-            ctx.reset()
-            ctx.clearRect(0, 0, w, h)
+        // ===== SHIFT LIGHTS =====
+        Row {
+            id: lightsRow
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.bottom: bar.top
+            anchors.bottomMargin: lightSize * 0.8
+            spacing: lightSize * 0.4
 
-            // Background
-            ctx.fillStyle = bgColor
-            ctx.fillRect(0, 0, w, h)
+            property real lightSize: bar.height * 0.6
 
-            // Horizontal bar
-            const padding = w * 0.05
-            const barHeight = h * 0.12
-            const barWidth = w - padding * 2
-            const barX = padding
-            const barY = h / 2 - barHeight / 2
+            Repeater {
+                model: shiftLights.length
 
-            // Background bar
-            ctx.fillStyle = inactiveColor
-            ctx.fillRect(barX, barY, barWidth, barHeight)
+                Item {
+                    width: lightsRow.lightSize
+                    height: width
 
-            // Gradient for active bar
-            const gradient = ctx.createLinearGradient(barX, 0, barX + barWidth, 0)
-            gradient.addColorStop(0.0, greenColor)
-            gradient.addColorStop(0.6, greenColor)
-            gradient.addColorStop(0.6, blueColor)
-            gradient.addColorStop(0.8, blueColor)
-            gradient.addColorStop(0.8, redColor)
-            gradient.addColorStop(1.0, redColor)
+                    readonly property bool active: rpmNorm >= shiftLights[index]
+                    readonly property color ledColor: {
+                        if (!active) return inactiveColor
+                        if (index < 3) return greenColor
+                        if (index < 5) return blueColor
+                        return redColor
+                    }
 
-            const fillWidth = barWidth * rpmNorm
-            ctx.fillStyle = gradient
-            ctx.fillRect(barX, barY, fillWidth, barHeight)
+                    // Fake glow
+                    Rectangle {
+                        anchors.centerIn: parent
+                        width: parent.width * 1.6
+                        height: width
+                        radius: width / 2.5
+                        color: ledColor
+                        opacity: active ? (inRedZone ? blinkPhase * 0.25 : 0.25) : 0
+                        visible: active
+                    }
 
-            // Shift lights (LEDs)
-            const lightCount = shiftLights.length
-            const lightSize = barHeight * 0.6
-            const lightGap = lightSize * 0.4
-            const totalLightsWidth = lightCount * lightSize + (lightCount - 1) * lightGap
+                    // LED core
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: width / 2
+                        color: ledColor
+                        opacity: active ? (inRedZone ? blinkPhase : 1.0) : 0.4
+                    }
+                }
+            }
+        }
 
-            let lx = w / 2 - totalLightsWidth / 2
-            const ly = barY - lightSize * 1.5
+        // ===== BAR BACKGROUND =====
+        Rectangle {
+            id: bar
+            anchors.verticalCenter: parent.verticalCenter
+            width: parent.width
+            height: parent.height * 0.12
+            radius: height / 2
+            color: inactiveColor
+            clip: true
 
-            for (let i = 0; i < lightCount; i++) {
-                let color = inactiveColor
-                if (rpmNorm >= shiftLights[i]) {
-                    if (i < 3) color = greenColor
-                    else if (i < 5) color = blueColor
-                    else color = redColor
+            // ===== CLIP CONTAINER =====
+            Item {
+                width: bar.width * rpmNorm
+                height: parent.height
+                clip: true
+
+                Behavior on width {
+                    NumberAnimation {
+                        duration: 80
+                        easing.type: Easing.OutCubic
+                    }
                 }
 
-                // LED glow effect
-                ctx.save()
-                ctx.shadowBlur = lightSize * 0.8
-                ctx.shadowColor = color
+                // ===== FULL GRADIENT (FIXED WIDTH) =====
+                Rectangle {
+                    width: bar.width         
+                    height: parent.height
+                    radius: height / 2
 
-                const ledGradient = ctx.createRadialGradient(
-                    lx + lightSize/2, ly, lightSize*0.1,
-                    lx + lightSize/2, ly, lightSize/2
-                )
-                ledGradient.addColorStop(0, color)
-                ledGradient.addColorStop(0.7, color)
-                ledGradient.addColorStop(1, "#111")
-
-                ctx.beginPath()
-                ctx.arc(lx + lightSize / 2, ly, lightSize / 2, 0, 2 * Math.PI)
-                ctx.fillStyle = ledGradient
-                ctx.fill()
-                ctx.restore()
-
-                lx += lightSize + lightGap
+                    gradient: Gradient {
+                        orientation: Gradient.Horizontal
+                        GradientStop { position: 0; color: greenColor }
+                        GradientStop { position: 0.2; color: greenColor }
+                        GradientStop { position: 0.2; color: blueColor }
+                        GradientStop { position: 0.5; color: blueColor }
+                        GradientStop { position: 0.5; color: redColor }
+                        GradientStop { position: 1.0; color: redColor }
+                    }
+                }
             }
+        }
 
-            // RPM text
-            ctx.fillStyle = textColor
-            ctx.font = `${barHeight * 1}px Arial`
-            ctx.textAlign = "center"
-            ctx.textBaseline = "middle"
-            ctx.fillText(Math.round(rpm) + " RPM", w / 2, barY + barHeight + barHeight)
+        // ===== RPM TEXT =====
+        Text {
+            anchors.top: bar.bottom
+            anchors.topMargin: bar.height * 0.8
+            anchors.horizontalCenter: parent.horizontalCenter
+
+            text: Math.round(rpm) + " tr/min"
+            color: textColor
+            font.pixelSize: bar.height * 0.75
+            font.bold: true
         }
     }
-
-    onRpmChanged: canvas.requestPaint()
 }
