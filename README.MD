@@ -118,8 +118,8 @@ Future improvements:
 
 To do software V2:
 - Debug is no longer in full screen - done
-- add technometer 
-- improve gps updates
+- add technometer  - done, working on second version
+- improve gps updates - done, needs testing
 - calibrate light colour - done
 - Add darkmode map - done
-- feature for git pulls
+- feature for git pulls - done, needs testing

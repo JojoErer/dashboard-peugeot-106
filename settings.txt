@@ -1,2 +1,2 @@
-data
-false
+techno
+true

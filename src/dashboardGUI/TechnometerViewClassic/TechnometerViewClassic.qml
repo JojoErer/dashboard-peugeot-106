@@ -46,7 +46,7 @@ Item {
             const h = height
             const cx = w / 2
             const cy = h / 2
-            const radius = Math.min(w, h) * 0.45
+            const radius = Math.min(w, h) * 0.5
 
             const subticks = 4
 

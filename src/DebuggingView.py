@@ -119,16 +119,13 @@ class DebuggerWindow(QWidget):
             except ValueError:
                 idx = 0
             backend.currentView = views[(idx + 1) % len(views)]
-            print("[DEBUGGER] Next view ->", backend.currentView)
 
         def handle_top_button():
             # --- Git update ---
             if backend.currentView == "data":
                 if backend.systemActionState != "idle":
-                    print("[INFO] System busy:", backend.systemActionState)
                     return
 
-                print("[DEBUGGER] Git update requested")
                 backend.sensorStatusMessage = "Checking for updates..."
                 backend.systemActionState = "git_checking"
                 self.git_updater.handle_update_request()
@@ -136,10 +133,7 @@ class DebuggerWindow(QWidget):
             # --- MPU calibration ---
             elif backend.currentView == "accel":
                 if backend.systemActionState == "calibrating_mpu":
-                    print("[INFO] MPU calibration already in progress")
                     return
-
-                print("[DEBUGGER] Calibrating MPU6050...")
                 backend.systemActionState = "calibrating_mpu"
 
                 try:
@@ -154,13 +148,11 @@ class DebuggerWindow(QWidget):
                     lambda: setattr(backend, "systemActionState", "idle")
                 )
 
-            # --- GPS overlay ---
-            elif backend.currentView == "gps":
+            # --- GPS overlay or technometer chagne ---
+            elif backend.currentView == "gps" or backend.currentView == "techno":
                 backend.showOverlays = not backend.showOverlays
-                print("[DEBUGGER] Toggle GPS overlay")
-
             else:
-                print("[DEBUGGER] No action in this view")
+                return
 
         btn_view.clicked.connect(cycle_view)
         btn_action.clicked.connect(handle_top_button)

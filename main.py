@@ -65,7 +65,6 @@ class DashboardBackend(QObject):
         self._currentView = "gps"
         self._showOverlays = True
         self._sensorStatusMessage = "Initializing sensors..."
-
         self._systemActionState = "idle"
 
         self.load_settings()
@@ -257,7 +256,7 @@ class DashboardBackend(QObject):
 # ============================================================
 
 if __name__ == "__main__":
-    debugOn = False
+    debugOn = True
 
     app = QApplication(sys.argv)
     engine = QQmlApplicationEngine()
@@ -461,10 +460,11 @@ if __name__ == "__main__":
                     2000,
                     lambda: setattr(backend, "systemActionState", "idle")
                 )
-            # --- GPS overlay ---
-            elif backend.currentView == "gps":
+            # --- GPS overlay or technometer chagne ---
+            elif backend.currentView == "gps" or backend.currentView == "techno":
                 backend.showOverlays = not backend.showOverlays
-            # -- Shutdown of system --
+
+            # --- Shutdown of system ---
             elif backend.currentView == "clock":
                 os.system("sudo shutdown now")
             else:

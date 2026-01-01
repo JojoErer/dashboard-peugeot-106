@@ -7,7 +7,8 @@ import "GPSView"
 import "ClockView"
 import "DataView"
 import "AccelerationView"
-import "TechnometerView"
+import "TechnometerViewClassic"
+import "TechnometerViewModern"
 
 ApplicationWindow {
     id: root
@@ -17,11 +18,10 @@ ApplicationWindow {
     height: Screen.height
 
     // ====== ARBITRARY ROTATION (degrees) ======
-    property real uiRotation: 142
+    property real uiRotation: 0 // 142
 
     // ====== Global State ======
     property color dayColor: backend.isDaytime ? "white" :  "#ffd577"
-    property bool showOverlays: backend.showOverlays
 
     // ====== ROTATED ROOT ======
     Item {
@@ -59,14 +59,23 @@ ApplicationWindow {
             Behavior on centerLon { NumberAnimation { duration: 500; easing.type: Easing.InOutQuad } }
         }
 
-        // --- Technometer View ---
-        TechnometerView {
-            id: technoView
+        // --- Technometer View (Classic) ---
+        TechnometerViewClassic {
+            id: technoClassic
             anchors.fill: parent
-            visible: backend.currentView === "techno"
+            visible: backend.currentView === "techno" && backend.showOverlays
 
-            rpm: backend.rpm   
+            rpm: backend.rpm
             textColor: root.dayColor
+        }
+
+        // --- Technometer View (Modern) ---
+        TechnometerViewModern {
+            id: technoModern
+            anchors.centerIn: parent
+            visible: backend.currentView === "techno" && !backend.showOverlays
+
+            rpm: backend.rpm
         }
 
         // --- Data Panel ---
@@ -103,7 +112,6 @@ ApplicationWindow {
             ax: backend.ax
             ay: backend.ay
             textColor: root.dayColor
-            calibrationState: backend.calibrationState
         }
 
         // ====== UI OVERLAYS ======
@@ -114,16 +122,16 @@ ApplicationWindow {
             speed: backend.velocity
             gpsTime: backend.gpsTime
             textColor: root.dayColor
-            visible: backend.currentView !== "clock"
-                     && (backend.currentView !== "gps" || root.showOverlays)
-                     && backend.currentView !== "techno"
+            visible:
+                (backend.currentView === "data" || backend.currentView === "accel")
+                || ((backend.currentView === "gps" || backend.currentView === "techno") && !backend.showOverlays)
         }
 
         BottomBar {
             id: bottomBar
-            visible: backend.currentView !== "clock"
-                     && (backend.currentView !== "gps" || root.showOverlays) 
-                     && backend.currentView !== "techno"
+            visible:
+                (backend.currentView === "data" || backend.currentView === "accel")
+                || ((backend.currentView === "gps" || backend.currentView === "techno") && !backend.showOverlays)
         }
 
         // ====== SYSTEM / ACTION / SHUTDOWN OVERLAY ======
@@ -220,18 +228,24 @@ ApplicationWindow {
                 repeat: false
                 running: (backend.sensorStatusMessage !== "" || backend.systemActionState !== "idle")
                 onTriggered: {
-                    if (!(backend.velocity === 0 && backend.currentView === "clock")) {
-                        backend.sensorStatusMessage = ""
-                        backend.systemActionState = "idle"
-                    }
+                    backend.sensorStatusMessage = ""
+                    backend.systemActionState = "idle"
                 }
             }
 
             // ===== Run timer whenever a new message appears =====
             Connections {
                 target: backend
-                onSensorStatusMessageChanged: { if (backend.sensorStatusMessage !== "") hideMessageTimer.restart() }
-                onSystemActionStateChanged: { if (backend.systemActionState !== "idle") hideMessageTimer.restart() }
+
+                function onSensorStatusMessageChanged() {
+                    if (backend.sensorStatusMessage !== "")
+                        hideMessageTimer.restart()
+                }
+
+                function onSystemActionStateChanged() {
+                    if (backend.systemActionState !== "idle")
+                        hideMessageTimer.restart()
+                }
             }
         }
 
@@ -269,7 +283,7 @@ ApplicationWindow {
 
     Behavior on dayColor {
         ColorAnimation {
-            duration: 500
+            duration: 200
             easing.type: Easing.InOutQuad
         }
     }
