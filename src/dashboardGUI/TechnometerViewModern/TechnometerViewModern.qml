@@ -11,6 +11,8 @@ Item {
     property real maxRpm: 7000
     property real redlineRpm: 6000
 
+    property color textColor: "white"
+
     property color bgColor: "black"
     property color greenColor: "#00ff66"
     property color blueColor: "#00c8ff"
@@ -114,8 +116,8 @@ Item {
             }
 
             // RPM text
-            ctx.fillStyle = "white"
-            ctx.font = `${barHeight * 1.5}px Arial`
+            ctx.fillStyle = textColor
+            ctx.font = `${barHeight * 1}px Arial`
             ctx.textAlign = "center"
             ctx.textBaseline = "middle"
             ctx.fillText(Math.round(rpm) + " RPM", w / 2, barY + barHeight + barHeight)

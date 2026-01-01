@@ -76,6 +76,7 @@ ApplicationWindow {
             visible: backend.currentView === "techno" && !backend.showOverlays
 
             rpm: backend.rpm
+            textColor: root.dayColor
         }
 
         // --- Data Panel ---
