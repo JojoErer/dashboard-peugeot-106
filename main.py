@@ -37,11 +37,9 @@ class DashboardBackend(QObject):
     isDaytimeChanged = Signal()
     rpmChanged = Signal()
     gpsConnectedChanged = Signal()
-
     currentViewChanged = Signal()
     showOverlaysChanged = Signal()
     sensorStatusMessageChanged = Signal()
-    
     systemActionStateChanged = Signal()
 
     def __init__(self):
@@ -60,7 +58,6 @@ class DashboardBackend(QObject):
         self._ay = 0.0
         self._rpm = 0.0
         self._isDaytime = True
-        self._gpsConnected = False
 
         self._currentView = "gps"
         self._showOverlays = True
@@ -104,9 +101,7 @@ class DashboardBackend(QObject):
     # --------------------------------------------------------
 
     @Property(str, notify=sensorStatusMessageChanged)
-    def sensorStatusMessage(self):
-        return self._sensorStatusMessage
-
+    def sensorStatusMessage(self): return self._sensorStatusMessage
     @sensorStatusMessage.setter
     def sensorStatusMessage(self, val):
         if self._sensorStatusMessage != val:
@@ -114,9 +109,7 @@ class DashboardBackend(QObject):
             self.sensorStatusMessageChanged.emit()
             
     @Property(str, notify=systemActionStateChanged)
-    def systemActionState(self):
-        return self._systemActionState
-    
+    def systemActionState(self): return self._systemActionState
     @systemActionState.setter
     def systemActionState(self, val):
         if self._systemActionState != val:
@@ -124,9 +117,7 @@ class DashboardBackend(QObject):
             self.systemActionStateChanged.emit()
 
     @Property(str, notify=currentViewChanged)
-    def currentView(self):
-        return self._currentView
-
+    def currentView(self): return self._currentView
     @currentView.setter
     def currentView(self, val):
         if self._currentView != val:
@@ -135,15 +126,12 @@ class DashboardBackend(QObject):
             self.save_settings()
 
     @Property(bool, notify=showOverlaysChanged)
-    def showOverlays(self):
-        return self._showOverlays
-
+    def showOverlays(self): return self._showOverlays
     @showOverlays.setter
     def showOverlays(self, val):
         if self._showOverlays != val:
             self._showOverlays = val
             self.showOverlaysChanged.emit()
-            self.save_settings()
 
     @Property(float, notify=velocityChanged)
     def velocity(self): return self._velocity
@@ -290,7 +278,7 @@ if __name__ == "__main__":
     # --- DHT11 ---
     try:
         dht = DHT11(car_pin=4, vent_pin=27)
-        if hasattr(dht, "test_mode") and dht.test_mode:
+        if dht.test_mode:
             init_status.append("DHT11: simulated")
         else:
             init_status.append("DHT11: real")
@@ -301,7 +289,7 @@ if __name__ == "__main__":
     try:
         light_sensor = LDRLM393(pin1=22, pin2=10)
         light_sensor.initialize()
-        if hasattr(light_sensor, "test_mode") and light_sensor.test_mode:
+        if light_sensor.test_mode:
             init_status.append("LDR: simulated")
         else:
             init_status.append("LDR: real")
@@ -322,8 +310,7 @@ if __name__ == "__main__":
     try:
         gps_reader = VK162GPS()
         gps_reader.initialize()
-        backend.gpsConnected = not gps_reader.test_mode
-        if hasattr(gps_reader, "test_mode") and gps_reader.test_mode:
+        if gps_reader.test_mode:
             init_status.append("GPS: simulated")
         else:
             init_status.append("GPS: real")
@@ -334,7 +321,7 @@ if __name__ == "__main__":
     try:
         mpu = MPU6050()
         mpu.initialize()
-        if hasattr(mpu, "test_mode") and mpu.test_mode:
+        if mpu.test_mode:
             init_status.append("MPU6050: simulated")
         else:
             init_status.append("MPU6050: real")
@@ -344,7 +331,7 @@ if __name__ == "__main__":
     # --- Buttons ---
     try:
         buttons = ButtonHandler(pin_next=5, pin_extra=6)
-        if hasattr(buttons, "test_mode") and buttons.test_mode:
+        if buttons.test_mode:
             init_status.append("Buttons: simulated")
         else:
             init_status.append("Buttons: real")

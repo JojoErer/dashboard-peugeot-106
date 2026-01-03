@@ -5,7 +5,6 @@ import glob
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
-
 class VK162GPS:
     def __init__(self, port=None, baudrate=9600, test_mode=False):
         self.port = port

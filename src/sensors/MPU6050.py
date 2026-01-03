@@ -50,8 +50,8 @@ class MPU6050:
     def read_accelerometer(self):
         """Read or simulate accelerometer data."""
         if self.SMBUS_AVAILABLE and self.MPU_CONNECTED:
-            ax = self.read_raw_data(self.ACCEL_XOUT_H) / 16384.0
-            ay = self.read_raw_data(self.ACCEL_XOUT_H + 2) / 16384.0
+            ax = self.read_raw_data(self.ACCEL_XOUT_H + 2) / 16384.0
+            ay = self.read_raw_data(self.ACCEL_XOUT_H) / 16384.0
             az = self.read_raw_data(self.ACCEL_XOUT_H + 4) / 16384.0
         else:
             # Simulated data
