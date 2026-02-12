@@ -27,6 +27,7 @@ class MPU6050:
         self.ax_offset = 0.0
         self.ay_offset = 0.0
         self.az_offset = 0.0
+        self.window_size = 10
 
         self.load_calibration()
 
@@ -76,9 +77,19 @@ class MPU6050:
         self.save_calibration() 
 
     def get_calibrated_acceleration(self):
-        """Return calibrated accelerometer readings."""
-        ax, ay, az = self.read_accelerometer()
-        return ax - self.ax_offset, ay - self.ay_offset, az - self.az_offset
+        """Return calibrated accelerometer readings with moving average filter."""
+        samples = []
+        for _ in range(self.window_size):
+            ax, ay, az = self.read_accelerometer()
+            samples.append((ax, ay, az))
+            time.sleep(0.01)
+        
+        # Calculate the moving average
+        ax_avg = sum(sample[0] for sample in samples) / self.window_size
+        ay_avg = sum(sample[1] for sample in samples) / self.window_size
+        az_avg = sum(sample[2] for sample in samples) / self.window_size
+        
+        return ax_avg - self.ax_offset, ay_avg - self.ay_offset, az_avg - self.az_offset
 
     def read_raw_data(self, addr):
         """Read two bytes of data from the given address."""
