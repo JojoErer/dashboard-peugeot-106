@@ -21,3 +21,5 @@ RPi.GPIO
 adafruit-DHT   
 adafruit-circuitpython-dht 
 smbus2
+
+gpsd-py3

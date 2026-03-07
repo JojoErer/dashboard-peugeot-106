@@ -32,6 +32,10 @@ Other required components are:
 - push buttons
 
 
+For arial 
+sudo apt install ttf-mscorefonts-installer
+sudo fc-cache -f
+
 The Raspberry pi can be configured to run the main.py on startup. For first installation, run setup.py as usual, after that works. Apply the following steps:
 
   sudo nano /etc/systemd/system/dashboard.service
@@ -44,7 +48,7 @@ Add:
 
   [Service]
   # Adjust to your Python interpreter path:
-  ExecStart=/usr/bin/python3 /home/pi/your_project_folder/main.py
+  ExecStart=/home/pi/your_project_folder/.venv/bin/python3 /home/pi/your_project_folder/main.py
   WorkingDirectory=/home/pi/your_project_folder
   Restart=always
   User=pi
