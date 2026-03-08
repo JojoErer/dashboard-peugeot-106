@@ -44,6 +44,11 @@ sudo systemctl start gpsd
 
 Using GPSD together with code will not work, disable GPSD when gps is confirmed working. 
 
+
+https://docs.circuitpython.org/projects/dht/en/3.1.0/
+
+enable i2c in sudo raspi-config en dan interface options i2c en enable
+
 for ui:
 
 cgps -s
