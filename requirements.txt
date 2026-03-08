@@ -18,7 +18,6 @@ gpiozero
 # Sensors & hardware
 RPLCD
 RPi.GPIO 
-adafruit-DHT   
 adafruit-circuitpython-dht 
 smbus2
 

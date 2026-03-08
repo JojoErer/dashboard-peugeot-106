@@ -32,6 +32,23 @@ Other required components are:
 - push buttons
 
 
+For GPS (using GPSD)
+
+sudo apt update
+sudo apt install gpsd gpsd-clients
+
+for starting:
+
+sudo systemctl enable gpsd
+sudo systemctl start gpsd
+
+Using GPSD together with code will not work, disable GPSD when gps is confirmed working. 
+
+for ui:
+
+cgps -s
+
+
 For arial 
 sudo apt install ttf-mscorefonts-installer
 sudo fc-cache -f
@@ -40,24 +57,34 @@ The Raspberry pi can be configured to run the main.py on startup. For first inst
 
   sudo nano /etc/systemd/system/dashboard.service
 
+Change to X11:
+sudo raspi-config
+
+Advanced Options
+Wayland
+X11
+
 Add:
 
   [Unit]
   Description=Dashboard GUI
-  After=network.target graphical.target
+  After=network.target
 
   [Service]
   # Adjust to your Python interpreter path:
-  ExecStart=/home/pi/your_project_folder/.venv/bin/python3 /home/pi/your_project_folder/main.py
   WorkingDirectory=/home/pi/your_project_folder
-  Restart=always
   User=pi
+
+  ExecStartPre = /bin/sleep 5
+  ExecStart=/home/pi/your_project_folder/.venv/bin/python3 /home/pi/your_project_folder/main.py
+
+  Restart=always
   Environment=DISPLAY=:0
   Environment=XAUTHORITY=/home/pi/.Xauthority
   Environment=QT_QPA_PLATFORM=xcb
 
   [Install]
-  WantedBy=graphical.target
+  WantedBy=multi-user.target
 
 
 Enable the service:
