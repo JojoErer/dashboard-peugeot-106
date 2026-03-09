@@ -44,6 +44,17 @@ sudo systemctl start gpsd
 
 Using GPSD together with code will not work, disable GPSD when gps is confirmed working. 
 
+sudo systemctl stop gpsd
+sudo systemctl stop gpsd.socket
+
+sudo systemctl disable gpsd
+sudo systemctl disable gpsd.socket
+
+
+
+To fix missing board library:
+
+pip install --upgrade --force-reinstall adafruit-blinka Adafruit-PlatformDetect
 
 https://docs.circuitpython.org/projects/dht/en/3.1.0/
 

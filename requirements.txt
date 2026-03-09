@@ -19,5 +19,3 @@ RPLCD
 RPi.GPIO 
 adafruit-circuitpython-dht 
 smbus2
-
-gpsd-py3
