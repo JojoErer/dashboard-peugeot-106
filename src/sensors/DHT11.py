@@ -8,20 +8,6 @@ except ImportError:
 import random
 
 class DHT11:
-    if ADAFRUIT_AVAILABLE:
-        PIN_MAP = {
-            4: board.D4,
-            17: board.D17,
-            27: board.D27,
-            22: board.D22
-        }
-    else:
-        PIN_MAP = {
-            4: 4,
-            17: 17,
-            27: 27,
-            22: 22
-        }
 
     def __init__(self, car_pin=None, vent_pin=None):
         self.car_pin = car_pin
@@ -30,14 +16,17 @@ class DHT11:
         self.test_mode = False
 
         if ADAFRUIT_AVAILABLE:
+            
+            if car_pin:
+                self._release_gpio(car_pin)
+
+            if vent_pin:
+                self._release_gpio(vent_pin)
+            
             if car_pin is not None:
-                if car_pin not in self.PIN_MAP:
-                    raise ValueError(f"Invalid car pin: {car_pin}")
-                self.sensors['car'] = adafruit_dht.DHT11(self.PIN_MAP[car_pin])
+                self.sensors['car'] = adafruit_dht.DHT11(board.D4, use_pulseio=False)
             if vent_pin is not None:
-                if vent_pin not in self.PIN_MAP:
-                    raise ValueError(f"Invalid vent pin: {vent_pin}")
-                self.sensors['vent'] = adafruit_dht.DHT11(self.PIN_MAP[vent_pin])
+                self.sensors['vent'] = adafruit_dht.DHT11(board.D27, use_pulseio=False)
         else:
             self.sensors['car'] = None
             self.sensors['vent'] = None
@@ -83,3 +72,17 @@ class DHT11:
             return self._fake_vent_temp, self._fake_vent_hum
         else:
             return None, None
+        
+    def _release_gpio(self, pin):
+        try:
+            chip = gpiod.Chip("gpiochip0")
+            line = chip.get_line(pin)
+
+            # Request and immediately release
+            line.request(consumer="dht_cleanup", type=gpiod.LINE_REQ_DIR_IN)
+            line.release()
+
+            print(f"[DHT11] Released GPIO{pin}")
+
+        except Exception as e:
+            print(f"[DHT11] Could not release GPIO{pin}: {e}")

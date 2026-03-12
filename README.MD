@@ -91,7 +91,7 @@ Add:
   WorkingDirectory=/home/pi/your_project_folder
   User=pi
 
-  ExecStartPre = /bin/sleep 5
+  ExecStartPre = /bin/sleep 20
   ExecStart=/home/pi/your_project_folder/.venv/bin/python3 /home/pi/your_project_folder/main.py
 
   Restart=always
