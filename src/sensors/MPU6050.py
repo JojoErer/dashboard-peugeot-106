@@ -28,11 +28,8 @@ class MPU6050:
         self.ay_offset = 0.0
         self.az_offset = 0.0
         self.window_size = 10
-
+    
         self.load_calibration()
-
-    def initialize(self):
-        """Alias for init_sensor() to match other sensor classes."""
         self.init_sensor()
 
     def init_sensor(self):

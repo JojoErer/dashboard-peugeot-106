@@ -41,15 +41,7 @@ class VK162GPS:
             except Exception as e:
                 print(f"[ERROR] Failed to open GPS: {e}")
                 self.test_mode = True
-
-    # =====================================================
-    # ================= INITIALIZATION ====================
-    # =====================================================
-    def initialize(self):
-        if self.test_mode:
-            print("[INFO] GPS running in test mode")
-            return True
-
+                
         print("[INFO] Initializing GPS (waiting for data)...")
         start = time.time()
         while time.time() - start < 2.0:
@@ -60,7 +52,6 @@ class VK162GPS:
 
         print("[WARN] No GPS data received, switching to test mode")
         self.test_mode = True
-        return True
 
     # =====================================================
     # ================= NMEA PARSING ======================

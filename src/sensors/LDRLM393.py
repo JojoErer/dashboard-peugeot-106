@@ -22,6 +22,18 @@ class LDRLM393:
         else:
             self.test_mode = True
             
+        """
+        Initializes both sensors and checks if both give the same value.
+        """
+        val1 = self.read_light_intensity(self.pin1)
+        val2 = self.read_light_intensity(self.pin2)
+        if val1 == val2:
+            print(f"[LightSensor] Initialized: both sensors read {val1}")
+            return True
+        else:
+            print(f"[LightSensor] Init mismatch: {val1} vs {val2}")
+            return False
+            
     def read_light_intensity(self, pin):
         """
         Reads light intensity (0 or 1) from a given pin.
@@ -36,19 +48,6 @@ class LDRLM393:
             else:
                 self._sim_light2 = 1 if random.random() > 0.4 else 0
                 return self._sim_light2
-
-    def initialize(self):
-        """
-        Initializes both sensors and checks if both give the same value.
-        """
-        val1 = self.read_light_intensity(self.pin1)
-        val2 = self.read_light_intensity(self.pin2)
-        if val1 == val2:
-            print(f"[LightSensor] Initialized: both sensors read {val1}")
-            return True
-        else:
-            print(f"[LightSensor] Init mismatch: {val1} vs {val2}")
-            return False
 
     def cleanup(self):
         if RPI_AVAILABLE:

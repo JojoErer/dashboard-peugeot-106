@@ -276,83 +276,50 @@ if __name__ == "__main__":
     init_status = []
 
     # --- DHT11 ---
-    try:
-        dht = DHT11(car_pin=4, vent_pin=27)
-        if dht.test_mode:
-            init_status.append("DHT11: simulated")
-        else:
-            init_status.append("DHT11: real")
-    except Exception as e:
-        init_errors.append(f"DHT11: {e}")
+    dht = DHT11(car_pin=4, vent_pin=27)
+    if dht.test_mode:
+        init_status.append("DHT11: simulated")
+    else:
+        init_status.append("DHT11: real")
+
 
     # --- LDR Light Sensor ---
-    try:
-        light_sensor = LDRLM393(pin1=22, pin2=10)
-        light_sensor.initialize()
-        if light_sensor.test_mode:
-            init_status.append("LDR: simulated")
-        else:
-            init_status.append("LDR: real")
-    except Exception as e:
-        init_errors.append(f"LDR: {e}")
+
+    light_sensor = LDRLM393(pin1=22, pin2=10)
+    if light_sensor.test_mode:
+        init_status.append("LDR: simulated")
+    else:
+        init_status.append("LDR: real")
+
         
     # --- RPM ---
-    try:
-        rpm_reader = RPMreader(pin=17, pulses_per_revolution=1)
-        if rpm_reader.test_mode:
-            init_status.append("RPM: simulated")
-        else:
-            init_status.append("RPM: real")
-    except Exception as e:
-        init_errors.append(f"RPM: {e}")
+    rpm_reader = RPMreader(pin=17, pulses_per_revolution=1)
+    if rpm_reader.test_mode:
+        init_status.append("RPM: simulated")
+    else:
+        init_status.append("RPM: real")
 
     # --- GPS ---
-    try:
-        gps_reader = VK162GPS()
-        gps_reader.initialize()
-        if gps_reader.test_mode:
-            init_status.append("GPS: simulated")
-        else:
-            init_status.append("GPS: real")
-    except Exception as e:
-        init_errors.append(f"GPS: {e}")
+    gps_reader = VK162GPS()
+    if gps_reader.test_mode:
+        init_status.append("GPS: simulated")
+    else:
+        init_status.append("GPS: real")
 
     # --- MPU6050 (Accelerometer) ---
-    try:
-        mpu = MPU6050()
-        mpu.initialize()
-        if mpu.test_mode:
-            init_status.append("MPU6050: simulated")
-        else:
-            init_status.append("MPU6050: real")
-    except Exception as e:
-        init_errors.append(f"MPU6050: {e}")
+    mpu = MPU6050()
+    if mpu.test_mode:
+        init_status.append("MPU6050: simulated")
+    else:
+        init_status.append("MPU6050: real")
 
     # --- Buttons ---
-    try:
-        buttons = ButtonHandler(pin_next=5, pin_extra=6)
-        if buttons.test_mode:
-            init_status.append("Buttons: simulated")
-        else:
-            init_status.append("Buttons: real")
-    except Exception as e:
-        init_errors.append(f"Buttons: {e}")
 
-    # --- Build display message ---
-    if init_errors:
-        backend.sensorStatusMessage = (
-            "Errors during initialization:\n"
-            + "\n".join(init_errors)
-            + "\n\nDetected devices:\n"
-            + "\n".join(init_status)
-        )
+    buttons = ButtonHandler(pin_next=5, pin_extra=6)
+    if buttons.test_mode:
+        init_status.append("Buttons: simulated")
     else:
-        backend.sensorStatusMessage = (
-            "All systems initialized successfully\n"
-            + "\n".join(init_status)
-        )
-
-    print(backend.sensorStatusMessage)
+        init_status.append("Buttons: real")
     
     # --- Optional: open debugger window on startup ---
     if debugOn:
@@ -453,13 +420,13 @@ if __name__ == "__main__":
 
             # --- Shutdown of system ---
             elif backend.currentView == "clock":
-                os.system("sudo shutdown now")
+                os.system("sudo shutdown -h now")
             else:
                 return
         
     timer = QTimer()
     if not debugOn:
         timer.timeout.connect(update_values)
-    timer.start(1000)
+    timer.start(2000)
 
     sys.exit(app.exec())
