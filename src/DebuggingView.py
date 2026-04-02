@@ -97,11 +97,35 @@ class DebuggerWindow(QWidget):
         add_check("Daytime",
                   lambda: backend.isDaytime,
                   lambda v: setattr(backend, "isDaytime", v))
+        
+        add_text("GPS Fix Status:",
+         lambda: backend.gpsFixStatus,
+         lambda v: setattr(backend, "gpsFixStatus", v))
+
+        add_spin("Satellites (used):", 0, 20, 1,
+                lambda: backend.gpsSatellites,
+                lambda v: setattr(backend, "gpsSatellites", int(v)))
+
+        add_spin("Satellites (visible):", 0, 30, 1,
+                lambda: backend.gpsSatellitesVisible,
+                lambda v: setattr(backend, "gpsSatellitesVisible", int(v)))
+        
+        # ===== GPS Debug Presets =====
+        gps_row = QHBoxLayout()
+
+        btn_no_fix = QPushButton("No Fix")
+        btn_fix = QPushButton("Good Fix")
+        btn_weak = QPushButton("Weak Signal")
+
+        gps_row.addWidget(btn_no_fix)
+        gps_row.addWidget(btn_weak)
+        gps_row.addWidget(btn_fix)
+
+        layout.addLayout(gps_row)
 
         # ===== MPU =====
         mpu = MPU6050()
-        mpu.initialize()
-
+        
         # ===== Buttons =====
         btn_view = QPushButton("Bottom button")
         btn_action = QPushButton("Top button")
@@ -112,6 +136,26 @@ class DebuggerWindow(QWidget):
         layout.addWidget(btn_close)
 
         # ===== Button logic =====
+        
+        def set_no_fix():
+            backend.gpsFixStatus = "No Fix"
+            backend.gpsSatellites = 0
+            backend.gpsSatellitesVisible = 0
+
+        def set_weak():
+            backend.gpsFixStatus = "GPS Fix"
+            backend.gpsSatellites = 3
+            backend.gpsSatellitesVisible = 6
+
+        def set_good():
+            backend.gpsFixStatus = "GPS Fix"
+            backend.gpsSatellites = 9
+            backend.gpsSatellitesVisible = 14
+
+        btn_no_fix.clicked.connect(set_no_fix)
+        btn_weak.clicked.connect(set_weak)
+        btn_fix.clicked.connect(set_good)
+
         def cycle_view():
             views = ["gps", "clock", "data", "accel", "techno"]
             try:

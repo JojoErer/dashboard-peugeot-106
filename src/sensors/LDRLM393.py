@@ -29,10 +29,8 @@ class LDRLM393:
         val2 = self.read_light_intensity(self.pin2)
         if val1 == val2:
             print(f"[LightSensor] Initialized: both sensors read {val1}")
-            return True
         else:
             print(f"[LightSensor] Init mismatch: {val1} vs {val2}")
-            return False
             
     def read_light_intensity(self, pin):
         """

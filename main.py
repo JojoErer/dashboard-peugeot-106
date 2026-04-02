@@ -16,7 +16,7 @@ from src.sensors.ButtonHandler import ButtonHandler
 from src.DebuggingView import DebuggerWindow
 from src.gitUpdater import GitUpdater
 
-APP_VERSION = "1.1.0"
+APP_VERSION = "1.1.1"
 
 # ============================================================
 #                     DASHBOARD BACKEND
@@ -41,6 +41,9 @@ class DashboardBackend(QObject):
     showOverlaysChanged = Signal()
     sensorStatusMessageChanged = Signal()
     systemActionStateChanged = Signal()
+    gpsFixStatusChanged = Signal()
+    gpsSatellitesChanged = Signal()
+    gpsSatellitesVisibleChanged = Signal()
 
     def __init__(self):
         super().__init__()
@@ -58,6 +61,9 @@ class DashboardBackend(QObject):
         self._ay = 0.0
         self._rpm = 0.0
         self._isDaytime = True
+        self._gpsFixStatus = "No Fix"
+        self._gpsSatellites = 0
+        self._gpsSatellitesVisible = 0
 
         self._currentView = "gps"
         self._showOverlays = True
@@ -99,6 +105,38 @@ class DashboardBackend(QObject):
     # --------------------------------------------------------
     # Properties
     # --------------------------------------------------------
+    
+    @Property(str, notify=gpsFixStatusChanged)
+    def gpsFixStatus(self):
+        return self._gpsFixStatus
+
+    @gpsFixStatus.setter
+    def gpsFixStatus(self, val):
+        if self._gpsFixStatus != val:
+            self._gpsFixStatus = val
+            self.gpsFixStatusChanged.emit()
+
+
+    @Property(int, notify=gpsSatellitesChanged)
+    def gpsSatellites(self):
+        return self._gpsSatellites
+
+    @gpsSatellites.setter
+    def gpsSatellites(self, val):
+        if self._gpsSatellites != val:
+            self._gpsSatellites = val
+            self.gpsSatellitesChanged.emit()
+
+
+    @Property(int, notify=gpsSatellitesVisibleChanged)
+    def gpsSatellitesVisible(self):
+        return self._gpsSatellitesVisible
+
+    @gpsSatellitesVisible.setter
+    def gpsSatellitesVisible(self, val):
+        if self._gpsSatellitesVisible != val:
+            self._gpsSatellitesVisible = val
+            self.gpsSatellitesVisibleChanged.emit()
 
     @Property(str, notify=sensorStatusMessageChanged)
     def sensorStatusMessage(self): return self._sensorStatusMessage
@@ -244,7 +282,7 @@ class DashboardBackend(QObject):
 # ============================================================
 
 if __name__ == "__main__":
-    debugOn = True
+    debugOn = False
 
     app = QApplication(sys.argv)
     engine = QQmlApplicationEngine()
@@ -339,11 +377,23 @@ if __name__ == "__main__":
         try:
             gps_data = gps_reader.get_data()
             if gps_data:
+                # Position
                 if gps_data["latitude"] and gps_data["longitude"]:
                     backend.centerLat = gps_data["latitude"]
                     backend.centerLon = gps_data["longitude"]
-                backend.velocity = gps_data.get("speed", 0.0) if gps_data.get("speed", 0.0) >= 3.0 else 0
+
+                # Speed
+                speed = gps_data.get("speed", 0.0)
+                backend.velocity = speed if speed >= 3.0 else 0
+
+                # Time
                 backend.gpsTime = gps_data.get("timestamp", "00:00")
+
+                # ✅ NEW: GPS status info
+                backend.gpsFixStatus = gps_data.get("fix_quality", "No Fix")
+                backend.gpsSatellites = gps_data.get("satellites", 0)
+                backend.gpsSatellitesVisible = gps_data.get("satellites_visible", 0)
+
         except Exception as e:
             backend.sensorStatusMessage = f"GPS read error: {e}"
 

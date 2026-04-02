@@ -122,6 +122,9 @@ ApplicationWindow {
             anchors.top: parent.top
             speed: backend.velocity
             gpsTime: backend.gpsTime
+            gpsFixStatus: backend.gpsFixStatus
+            gpsSatellites: backend.gpsSatellites
+
             textColor: root.dayColor
             visible:
                 (backend.currentView === "data" || backend.currentView === "accel")

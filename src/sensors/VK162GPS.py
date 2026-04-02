@@ -5,6 +5,7 @@ import glob
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
+
 class VK162GPS:
     def __init__(self, port=None, baudrate=9600, test_mode=False):
         self.port = port
@@ -12,14 +13,16 @@ class VK162GPS:
         self.test_mode = test_mode
         self.ser = None
 
-        # Last known GPS data (always returned)
+        # Last known GPS data
         self._last_data = {
             'latitude': None,
             'longitude': None,
             'speed': 0.0,
             'timestamp': None,
             'fix_status': 0,
-            'satellites': 0,
+            'fix_quality': "No Fix",
+            'satellites': 0,           
+            'satellites_visible': 0, 
             'hdop': None
         }
 
@@ -35,19 +38,18 @@ class VK162GPS:
 
         if not self.test_mode and self.port:
             try:
-                # NON-BLOCKING serial
                 self.ser = serial.Serial(self.port, self.baudrate, timeout=0)
                 print(f"[INFO] GPS opened on {self.port}")
             except Exception as e:
                 print(f"[ERROR] Failed to open GPS: {e}")
                 self.test_mode = True
-                
+
         print("[INFO] Initializing GPS (waiting for data)...")
         start = time.time()
         while time.time() - start < 2.0:
-            if self.ser.in_waiting:
+            if self.ser and self.ser.in_waiting:
                 print("[INFO] GPS is responding")
-                return True
+                return
             time.sleep(0.1)
 
         print("[WARN] No GPS data received, switching to test mode")
@@ -65,18 +67,31 @@ class VK162GPS:
         parts = sentence.split(',')
 
         try:
-            # ---------- GGA ----------
+            # ---------- GGA (fix + satellites used) ----------
             if parts[0] == "$GPGGA":
-                data['fix_status'] = int(parts[6]) if parts[6].isdigit() else 0
+                fix = int(parts[6]) if parts[6].isdigit() else 0
+                data['fix_status'] = fix
+
+                fix_map = {
+                    0: "No Fix",
+                    1: "GPS Fix",
+                    2: "DGPS Fix"
+                }
+                data['fix_quality'] = fix_map.get(fix, "Unknown")
+
                 data['satellites'] = int(parts[7]) if parts[7].isdigit() else 0
                 data['hdop'] = float(parts[8]) if parts[8] else None
 
-            # ---------- RMC ----------
+            # ---------- GSV (satellites visible) ----------
+            elif parts[0] == "$GPGSV":
+                if parts[3].isdigit():
+                    data['satellites_visible'] = int(parts[3])
+
+            # ---------- RMC (position + speed) ----------
             elif parts[0] == "$GPRMC" and parts[2] == 'A':
                 utc_time = parts[1]
                 utc_date = parts[9]
 
-                # Time
                 if len(utc_time) >= 6 and len(utc_date) == 6:
                     dt = datetime(
                         2000 + int(utc_date[4:6]),
@@ -91,11 +106,9 @@ class VK162GPS:
                         ZoneInfo("Europe/Amsterdam")
                     ).strftime("%H:%M")
 
-                # Speed (knots → km/h)
                 if parts[7]:
                     data['speed'] = float(parts[7]) * 1.852
 
-                # Position
                 lat_raw = float(parts[3])
                 lon_raw = float(parts[5])
 
@@ -119,11 +132,6 @@ class VK162GPS:
     # ================= MAIN UPDATE =======================
     # =====================================================
     def get_data(self):
-        """
-        Call this ONCE PER SECOND.
-        Reads ALL buffered NMEA sentences and updates cached data.
-        """
-
         if self.test_mode:
             self._last_data = {
                 'latitude': 52.1070 + random.uniform(-0.002, 0.002),
@@ -131,15 +139,16 @@ class VK162GPS:
                 'speed': random.uniform(0, 120),
                 'timestamp': datetime.now().strftime('%H:%M'),
                 'fix_status': 1,
+                'fix_quality': "GPS Fix",
                 'satellites': 8,
+                'satellites_visible': 12,
                 'hdop': 0.9
             }
             return self._last_data
 
-        # Drain serial buffer (≈1 second worth of data)
         start = time.time()
-        while time.time() - start < 0.1:  # 100 ms drain window
-            if not self.ser.in_waiting:
+        while time.time() - start < 0.05:
+            if not self.ser or not self.ser.in_waiting:
                 break
 
             try:
