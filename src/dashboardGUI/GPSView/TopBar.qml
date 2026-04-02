@@ -51,55 +51,61 @@ Rectangle {
     //     }
     // }
 
-Row {
-    id: displayRow
-    anchors.centerIn: parent
-    spacing: topBar.width * 0.01   // tighter spacing
+    Row {
+        id: displayRow
+        anchors.centerIn: parent
+        spacing: topBar.width * 0.01
 
-    Text {
-        id: gpsFixText
-        color: gpsFixStatus === "No Fix" ? "red" : topBar.textColor
-        font.pixelSize: topBar.height * 0.22
-        verticalAlignment: Text.AlignVCenter
-        text: gpsFixStatus
-    }
 
-    // -------------------------
-    // CENTER: Time + Speed
-    // -------------------------
-    Column {
-        spacing: topBar.height * 0.02
+        Column {
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.verticalCenterOffset: topBar.height * 0.1  
 
-        Text {
-            id: timeText
-            color: topBar.textColor
-            font.pixelSize: topBar.height * 0.30
-            horizontalAlignment: Text.AlignHCenter
-            text: gpsTime
+            Text {
+                id: gpsFixText
+                color: gpsFixStatus === "No Fix" ? "red" : topBar.textColor
+                font.pixelSize: topBar.height * 0.22
+                text: gpsFixStatus
+            }
         }
 
-        Text {
-            id: velocityText
-            color: topBar.textColor
-            textFormat: Text.RichText
-            horizontalAlignment: Text.AlignHCenter
-            text: `
-                <span style="font-size:${topBar.height * 0.35}px;">
-                    ${speed.toFixed(1)}
-                </span>
-                <span style="font-size:${topBar.height * 0.18}px;">
-                    km/h
-                </span>
-            `
+        Column {
+            spacing: topBar.height * 0.02
+
+            Text {
+                id: timeText
+                color: topBar.textColor
+                font.pixelSize: topBar.height * 0.30
+                horizontalAlignment: Text.AlignHCenter
+                text: gpsTime
+            }
+
+            Text {
+                id: velocityText
+                color: topBar.textColor
+                textFormat: Text.RichText
+                horizontalAlignment: Text.AlignHCenter
+                text: `
+                    <span style="font-size:${topBar.height * 0.35}px;">
+                        ${speed.toFixed(1)}
+                    </span>
+                    <span style="font-size:${topBar.height * 0.18}px;">
+                        km/h
+                    </span>
+                `
+            }
+        }
+
+        Column {
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.verticalCenterOffset: topBar.height * 0.1   
+
+            Text {
+                id: gpsSatText
+                color: topBar.textColor
+                font.pixelSize: topBar.height * 0.22
+                text: gpsSatellites + " sats"
+            }
         }
     }
-
-    Text {
-        id: gpsSatText
-        color: topBar.textColor
-        font.pixelSize: topBar.height * 0.22
-        verticalAlignment: Text.AlignVCenter
-        text: gpsSatellites + " sats"
-    }
-}
 }
